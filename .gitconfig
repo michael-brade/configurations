@@ -1,0 +1,54 @@
+[diff]
+    tool = kdiff3
+[merge]
+    tool = kdiff3
+[alias]
+    s = status
+    l = log
+    lol = log --graph --decorate --pretty=oneline --abbrev-commit
+    lola = log --graph --pretty='tformat:%h %C(auto) %d %cn %ad %s' --all --date=short
+
+    # list the $1 biggest files in the repository
+    ls-large-files = "!f() { \
+        echo "The pack column is the size of the object, compressed, inside the pack file."; \
+        git verify-pack -v .git/objects/pack/pack-*.idx | grep -v chain | sort -k3nr | head -n $1 | { echo 'size pack SHA location';  while read -r line; do \
+        size=$(echo $line | cut -f 3 -d ' ' | numfmt --to=iec); \
+        compressedSize=$(echo $line | cut -f 4 -d ' ' | numfmt --to=iec); \
+        sha=$(echo $line | cut -f 1 -d ' '); \
+        other=$(git rev-list --all --objects | grep $sha); \
+        echo $size $compressedSize $other; done } | column -t -s ' '; \
+    }; f"
+
+    # delete an expression from all history
+    remove-from-all-history = "!f() { \
+        filter="git rm --cached --ignore-unmatch $1"; \
+        git filter-branch -f --prune-empty --index-filter $filter -- --all; \
+    }; f"
+
+    # reduce history to the given directory
+    extract-dir = "!f() { \
+        git filter-branch --tag-name-filter cat --subdirectory-filter $1 -- --all; \
+    }; f"
+
+    expire-and-prune-now = "!f() { \
+        git reflog expire --expire=now --all && git gc --prune=now; \
+    }; f"
+
+    # do not use!
+    all-commits-by-me = "!f() { \
+        git filter-branch -f --tag-name-filter cat --env-filter '\
+            export GIT_AUTHOR_NAME=\"Michael Brade\" \
+            export GIT_AUTHOR_EMAIL=\"brade@kde.org\" \
+            export GIT_COMMITTER_NAME=\"Michael Brade\" \
+            export GIT_COMMITTER_EMAIL=\"brade@kde.org\"; echo $GIT_AUTHOR_NAME' -- $1; \
+    }; f"
+
+[color]
+    branch = auto
+    diff = auto
+    interactive = auto
+    status = auto
+[branch]
+    autosetuprebase = always
+[push]
+    default = matching
