@@ -1,0 +1,55 @@
+
+#####################
+# reset
+
+
+#####################
+# opening views
+
+'body':
+    'f12': 'window:toggle-dev-tools'
+    'cmd-,': 'settings-view:open'
+
+'.platform-linux, .platform-linux .command-palette atom-text-editor':
+    'cmd-p': 'command-palette:toggle'
+
+'.platform-linux atom-workspace':
+    'cmd-b': 'web-browser:toggle'
+    'cmd-c': 'color-picker:open'
+    'cmd-g': 'atomatigit:show'
+    'cmd-l': 'preview:toggle'
+    'cmd-r': 'key-binding-resolver:toggle'
+    'cmd-s': 'svg-preview:toggle'
+    'cmd-y': 'symbols-tree-view:toggle'
+    'cmd-shift-y': 'symbols-view:toggle-project-symbols'
+    'cmd-\\': 'project-ring:toggle'
+    'cmd-+': 'project-ring:add-project'
+    'cmd--': 'project-ring:unload-current-project'
+
+'.platform-linux .atomatigit':
+    'cmd-g': 'atomatigit:close'
+
+
+'.platform-linux atom-workspace atom-text-editor[data-grammar="source gfm"]':
+    'cmd-m': 'markdown-preview-katex:toggle'
+
+
+
+########################
+# focus
+
+'.platform-linux':
+    'cmd-t': 'tree-view:toggle-focus'
+
+
+########################
+# edit
+
+
+'atom-workspace atom-text-editor:not([mini])':
+    'alt-down':     'editor:move-line-down'
+    'alt-up':       'editor:move-line-up'
+    'ctrl-alt-down':'editor:duplicate-lines'
+    'ctrl-alt-up':  'editor:duplicate-lines'
+    'ctrl-up':      'unset'
+    'ctrl-down':    'unset'
