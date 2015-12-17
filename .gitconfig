@@ -6,10 +6,14 @@
     name = Michael Brade
     email = brade@kde.org
 [alias]
-    s = status
-    l = log
-    la = log --graph --decorate --pretty=oneline --abbrev-commit
-    ll = log --graph --pretty='tformat:%h %C(auto) %d %cn %ad %s' --all --date=short
+	s = status
+	# show all, including ignored files
+	sa= status --ignored # --porcelain
+
+	l  = log --graph --pretty='tformat:%h %C(auto) %ad %an %d %s' --date=short
+    la = log --graph --pretty='tformat:%h %C(auto) %ad %an %d %s' --date=short --all
+    ll = log --graph --stat --decorate
+    lla= log --graph --stat --decorate --all
 
     # list the $1 biggest files in the repository
     ls-large-files = "!f() { \
@@ -59,7 +63,18 @@
     diff = auto
     interactive = auto
     status = auto
+[url "git://anongit.kde.org/"]
+    insteadOf = kde:
+[url "git@git.kde.org:"]
+    pushInsteadOf = kde:
 [branch]
     autosetuprebase = always
 [push]
     default = matching
+[pull]
+	#rebase = true
+    ff = only      # don't automatically create a merge commit
+[rebase]
+    stat = true
+    autoStash = true
+    missingCommitsCheck = warn
