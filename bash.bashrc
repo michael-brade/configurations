@@ -6,17 +6,22 @@ alias ....='cd ../../..'
 umask 022
 
 
-# the shell history
-
-shopt -s histappend
+## the shell history - share across sessions, avoid and erase all dupes
 
 # record all history
 HISTSIZE=-1
 HISTFILESIZE=$HISTSIZE
-HISTCONTROL="ignoreboth:erasedups"
 HISTTIMEFORMAT="%d %b %Y, %H:%M - "
 
+# erase all dupes
+shopt -s histappend
+HISTCONTROL="ignoredups:erasedups"
+PROMPT_COMMAND="history -n; history -w; history -c; history -r; $PROMPT_COMMAND"
+
 export HISTFILESIZE HISTSIZE HISTCONTROL HISTTIMEFORMAT
+
+# manually erase dupes: (use only without timestamps!)
+#   tac $HISTFILE | awk '!x[$0]++' | tac | sponge $HISTFILE
 
 
 # less
