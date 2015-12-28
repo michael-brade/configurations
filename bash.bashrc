@@ -8,15 +8,24 @@ umask 022
 
 ## the shell history - share across sessions, avoid and erase all dupes
 
+function save_last_history_cmd() {
+    export LAST_HIST=$(history 1 | cut -f3- -d' ')
+}
+
+function restore_last_history_cmd() {
+    history -s $LAST_HIST
+    unset LAST_HIST
+}
+
+
 # record all history
 HISTSIZE=-1
 HISTFILESIZE=$HISTSIZE
-HISTTIMEFORMAT="%d %b %Y, %H:%M - "
 
 # erase all dupes
 shopt -s histappend
 HISTCONTROL="ignoredups:erasedups"
-PROMPT_COMMAND="history -n; history -w; history -c; history -r; $PROMPT_COMMAND"
+PROMPT_COMMAND="save_last_history_cmd; history -n; history -w; history -c; history -r; restore_last_history_cmd; $PROMPT_COMMAND"
 
 export HISTFILESIZE HISTSIZE HISTCONTROL HISTTIMEFORMAT
 
