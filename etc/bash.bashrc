@@ -38,7 +38,7 @@ export HISTFILESIZE HISTSIZE HISTCONTROL HISTTIMEFORMAT
 # less
 
 export LESSCHARSET=utf-8
-export LESS="-RMSi -c -y1"
+export LESS="-QRMSi -c -y1"
 
 # make less more friendly, includes lesspipe
 export LESSOPEN="| /usr/share/source-highlight/src-hilite-lesspipe.sh %s"
