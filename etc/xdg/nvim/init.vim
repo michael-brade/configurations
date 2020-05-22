@@ -1,5 +1,7 @@
 " vim:foldmethod=marker:foldlevel=0
 
+set guicursor=
+
 let g:python3_host_prog = '/usr/bin/python3'
 "let g:loaded_python_provider = 0
 
@@ -24,7 +26,7 @@ call plug#begin('/etc/xdg/nvim/bundle')
   Plug 'editorconfig/editorconfig-vim'
 
   " autocomplete
-  "Plug 'Valloric/YouCompleteMe', { 'on': [], 'do': './install.py --clang-completer --tern-completer' }
+  Plug 'Valloric/YouCompleteMe', { 'do': './install.py --clang-completer' }
   "Plug 'rdnetto/YCM-Generator', { 'branch': 'stable' }
   "Plug 'SirVer/ultisnips', { 'on': [] }
   "Plug 'nvie/vim-flake8'
@@ -53,9 +55,20 @@ call plug#begin('/etc/xdg/nvim/bundle')
   " syntax highlighting
   "Plug 'peterhoeg/vim-qml'
   "Plug 'artoj/qmake-syntax-vim'
-  "Plug 'octol/vim-cpp-enhanced-highlight'
+  Plug 'octol/vim-cpp-enhanced-highlight'
   "Plug 'rust-lang/rust.vim'
   "Plug 'tikhomirov/vim-glsl'
+
+  " LaTeX
+  Plug 'lervag/vimtex'
+
+  " typescript
+  Plug 'HerringtonDarkholme/yats.vim'
+  Plug 'mhartington/nvim-typescript', {'do': './install.sh'}
+  " for async completion
+  Plug 'Shougo/deoplete.nvim'
+  " for Denite features
+  Plug 'Shougo/denite.nvim'
 
   " markdown
   Plug 'gabrielelana/vim-markdown'
