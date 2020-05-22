@@ -5,15 +5,17 @@ alias ....='cd ../../..'
 
 umask 022
 
+export JAVA_TOOL_OPTIONS="-Djdk.disableLastUsageTracking=true"
+
 
 ## the shell history - share across sessions, avoid and erase all dupes
 
 function save_last_history_cmd() {
-    export LAST_HIST=$(history 1 | cut -f3- -d' ')
+    export LAST_HIST="$(history 1 | sed -r -e 's/^ *[0-9]+ {2}//')"
 }
 
 function restore_last_history_cmd() {
-    history -s $LAST_HIST
+    history -s "$LAST_HIST"
     unset LAST_HIST
 }
 
@@ -35,12 +37,11 @@ export HISTFILESIZE HISTSIZE HISTCONTROL HISTTIMEFORMAT
 
 # less
 
-LESSCHARSET=utf-8
-LESS="-RMSI -c -y1"
-export LESSCHARSET LESS
+export LESSCHARSET=utf-8
+export LESS="-RMSi -c -y1"
 
-# make less more friendly for non-text input files, see lesspipe(1)
-[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+# make less more friendly, includes lesspipe
+export LESSOPEN="| /usr/share/source-highlight/src-hilite-lesspipe.sh %s"
 
 alias o=less
 
