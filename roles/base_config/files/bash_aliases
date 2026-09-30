@@ -1,0 +1,22 @@
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+
+alias o=less
+
+alias mv='mv -i'
+alias cp='cp -i'
+
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=always'
+    alias ll='ls --color=always -l'
+    alias l='ls --color=always -lA'
+    alias la=l
+
+    alias grep='grep --color=always'
+    alias fgrep='fgrep --color=always'
+    alias egrep='egrep --color=always'
+fi
+
+alias lsd='ls -d */'

@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: MIT-0
+---
+# tasks for base_config
+
+
+- name: Bash configuration
+  ansible.builtin.blockinfile:
+    path: /etc/bash.bashrc
+    insertafter: EOF
+    marker: "# {mark} ANSIBLE MANAGED BASH CONFIG"
+    block: "{{ lookup('ansible.builtin.file', 'bash_config') }}"
+
+- name: Bash aliases
+  ansible.builtin.blockinfile:
+    path: /etc/bash.bashrc
+    insertafter: EOF
+    marker: "# {mark} ANSIBLE MANAGED BASH ALIASES"
+    block: "{{ lookup('ansible.builtin.file', 'bash_aliases') }}"
