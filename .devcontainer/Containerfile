@@ -1,0 +1,67 @@
+FROM ubuntu:26.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# disable Ubuntu's built-in docker-clean scripts so the cache mounts actually persist
+RUN rm -f /etc/apt/apt.conf.d/docker-clean; \
+    echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-debs; \
+    echo 'APT::Keep-Downloaded-Packages "true";' >> /etc/apt/apt.conf.d/keep-debs;
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        # core utils
+        less \
+        locales \
+        git git-lfs \
+        openssh-client \
+        # python
+        python3-pip \
+        python3-venv \
+        python3-full \
+        # podman in podman, fuse storage helpers
+        podman \
+        fuse-overlayfs \
+        uidmap
+
+RUN locale-gen en_US.UTF-8
+
+
+### user
+
+# rename ubuntu user/group/home to developer
+RUN usermod -l developer ubuntu && \
+    groupmod -n developer ubuntu && \
+    usermod -d /home/developer -m developer
+# RUN useradd -m -s /bin/bash developer
+
+# (Optional) if the user should get sudo-rights without password:
+# RUN echo "developer ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/developer
+
+# provision subordinate execution spaces
+RUN echo "developer:100000:65536" > /etc/subuid && \
+    echo "developer:100000:65536" > /etc/subgid
+
+# force Podman inside the container to utilize fuse-overlayfs
+RUN mkdir -p /home/developer/.config/containers
+RUN echo '[storage]\ndriver = "overlay"\n[storage.options.overlay]\nmount_program = "/usr/bin/fuse-overlayfs"' \
+    > /home/developer/.config/containers/storage.conf && \
+    chown -R developer:developer /home/developer/.config
+
+
+### install ansible
+
+# bind Python environment to the user space
+RUN python3 -m venv /opt/ansible-venv && \
+    chown -R developer:developer /opt/ansible-venv
+ENV PATH="/opt/ansible-venv/bin:$PATH"
+
+USER developer
+WORKDIR /home/developer
+
+RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir ansible-dev-tools
+
+CMD ["/bin/bash"]

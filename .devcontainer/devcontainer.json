@@ -1,0 +1,73 @@
+{
+    "name": "Ansible",
+
+    // "image": "ghcr.io/ansible/community-ansible-dev-tools:latest",
+    "build": {
+        "dockerfile": "./Containerfile",
+        // "context": "..",
+        "options": [
+            "--progress=plain"
+        ],
+        "args": {
+            // "baseImageVersion": "lts"
+        }
+    },
+
+    "runArgs": [
+        "--name", "Ansible-${devcontainerId}",
+        "--hostname=ansible-dev-container",
+
+        "--userns=host",
+        "--network=host",
+
+        "--security-opt", "seccomp=unconfined",
+        "--security-opt", "apparmor=unconfined",
+        "--security-opt", "label=disable",
+        "--security-opt", "unmask=/sys/fs/cgroup",
+        "--cap-add=SYS_ADMIN",
+        "--cap-add=SYS_RESOURCE",
+        "--cap-add=CAP_MKNOD",
+        "--cap-add=NET_ADMIN",
+        "--device", "/dev/fuse"
+    ],
+
+    // "containerUser": "root",
+    "remoteUser": "developer",
+
+    "customizations": {
+        "vscode": {
+            "settings": {
+                // Tells VS Code to use the python virtual environment inside the container
+                "python.defaultInterpreterPath": "/opt/ansible-venv/bin/python",
+                "python.terminal.activateEnvInTerminal": true,
+                // Ensures the Ansible extension points to the proper execution binaries
+                "ansible.ansible.path": "/opt/ansible-venv/bin/ansible"
+            },
+
+            "extensions": [
+                "ms-azuretools.vscode-containers",
+                "eamodio.gitlens",
+                "EditorConfig.EditorConfig",
+
+                "redhat.ansible",
+                "ms-python.python",
+                "ms-python.vscode-pylance"
+            ]
+        }
+    },
+
+    "mounts": [
+        {
+            "source": "/etc/localtime",
+            "target": "/etc/localtime",
+            "type": "bind"
+        },
+
+        // mount host's local SSH keys to manage real remote infrastructure
+        {
+            "source": "${localEnv:HOME}/.ssh",
+            "target": "/home/developer/.ssh",
+            "type": "bind,readonly"
+        }
+    ]
+}
