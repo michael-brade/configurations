@@ -22,9 +22,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         python3-venv \
         python3-full \
         # podman in podman, fuse storage helpers
-        podman \
-        fuse-overlayfs \
-        uidmap
+        podman passt uidmap \
+        fuse-overlayfs
 
 RUN locale-gen en_US.UTF-8
 
@@ -62,6 +61,6 @@ USER developer
 WORKDIR /home/developer
 
 RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir ansible-dev-tools
+RUN pip install --no-cache-dir ansible-dev-tools molecule-plugins
 
 CMD ["/bin/bash"]

@@ -1,0 +1,8 @@
+---
+driver:
+  name: podman
+
+platforms:
+  - name: ubuntu26-test
+    image: ubuntu:26.04
+    privileged: false

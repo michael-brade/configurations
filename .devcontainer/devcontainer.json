@@ -20,15 +20,18 @@
         "--userns=host",
         "--network=host",
 
+        "--security-opt", "label=disable",
         "--security-opt", "seccomp=unconfined",
         "--security-opt", "apparmor=unconfined",
-        "--security-opt", "label=disable",
+        "--security-opt", "systempaths=unconfined",
         "--security-opt", "unmask=/sys/fs/cgroup",
+
         "--cap-add=SYS_ADMIN",
         "--cap-add=SYS_RESOURCE",
         "--cap-add=CAP_MKNOD",
         "--cap-add=NET_ADMIN",
-        "--device", "/dev/fuse"
+        "--device", "/dev/fuse",
+        "--device", "/dev/net/tun"
     ],
 
     // "containerUser": "root",
