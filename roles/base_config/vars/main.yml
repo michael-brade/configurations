@@ -1,0 +1,14 @@
+---
+
+base_config_essential_packages:
+  - aptitude
+  - base-passwd
+  - bash
+  - dash
+
+base_config_core_packages:
+  - bash-completion
+  - git
+  - git-lfs
+  - tig
+  - etckeeper

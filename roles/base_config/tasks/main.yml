@@ -1,7 +1,41 @@
 # SPDX-License-Identifier: MIT-0
 ---
-# tasks for base_config
+- name: Install essential packages
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: "full"
+    install_recommends: false
+    name: "{{ base_config_essential_packages }}"
+    state: present
 
+- name: Mark automatically installed packages as such
+  # become: true
+  block:
+    - name: Find manual packages that are required by others
+      ansible.builtin.shell: |
+        set -o pipefail
+        for pkg in $(apt-mark showmanual); do
+          if [ $(aptitude search "?installed(?depends(?exact-name(${pkg})))" | wc -l) -gt 0 ]; then
+            echo "$pkg"
+          fi
+        done
+      register: base_config_packages_to_auto
+      changed_when: false
+      failed_when: false
+
+    - name: Switch all found packages to auto
+      ansible.builtin.command: "apt-mark auto {{ item }}"
+      loop: "{{ base_config_packages_to_auto.stdout_lines }}"
+      when: base_config_packages_to_auto.stdout_lines | length > 0
+      register: base_config_apt_mark_result
+      # Idempotence
+      changed_when: "'marked as auto installed' in base_config_apt_mark_result.stdout"
+
+- name: Install core packages
+  ansible.builtin.apt:
+    install_recommends: false
+    name: "{{ base_config_core_packages }}"
+    state: present
 
 - name: Bash configuration
   ansible.builtin.blockinfile:
@@ -10,9 +44,60 @@
     marker: "# {mark} ANSIBLE MANAGED BASH CONFIG"
     block: "{{ lookup('ansible.builtin.file', 'bash_config') }}"
 
+- name: Bash check window size
+  ansible.builtin.lineinfile:
+    path: /etc/bash.bashrc
+    line: 'shopt -s checkwinsize'
+    state: present
+    create: false
+
+- name: Enable Bash completion
+  ansible.builtin.replace:
+    path: /etc/bash.bashrc
+    regexp: |
+      (?m)^# (enable bash completion in interactive shells)\n#(if.*)\n#(.*)\n#(.*bash_completion)\n#(.*)\n#(.*)\n#(.*)\n#(fi)
+    replace: |
+      # \1
+      \2
+      \3
+      \4
+      \5
+      \6
+      \7
+      \8
+
 - name: Bash aliases
   ansible.builtin.blockinfile:
     path: /etc/bash.bashrc
     insertafter: EOF
     marker: "# {mark} ANSIBLE MANAGED BASH ALIASES"
     block: "{{ lookup('ansible.builtin.file', 'bash_aliases') }}"
+
+- name: Git configuration
+  community.general.git_config:
+    name: "alias.{{ item.key }}"
+    value: "{{ item.value }}"
+    scope: system
+  loop:
+    - { key: 's', value: 'status' }
+    - { key: 'sa', value: 'status --ignored' }
+    - { key: 'd', value: 'diff' }
+    - { key: 'ds', value: 'diff --staged' }
+    - { key: 'p', value: 'pull --recurse-submodules' }
+    - { key: 'l', value: "log --graph -m --pretty='tformat:%h %C(auto) %ad %an %d %s' --date=short" }
+    - { key: 'la', value: "log --graph -m --pretty='tformat:%h %C(auto) %ad %an %d %s' --date=short --all" }
+    - { key: 'll', value: 'log --graph -m --stat --decorate --no-merges' }
+    - { key: 'lla', value: 'log --graph -m --stat --decorate --no-merges --all' }
+
+
+### etckeeper
+
+- name: Disable etckeeper's auto-commit
+  ansible.builtin.lineinfile:
+    path: /etc/etckeeper/etckeeper.conf
+    regexp: '^#?\s*{{ item.key }}='
+    line: '{{ item.key }}={{ item.value }}'
+    state: present
+  loop:
+    - { key: 'AVOID_DAILY_AUTOCOMMITS', value: '1' }
+    - { key: 'AVOID_COMMIT_BEFORE_INSTALL', value: '1' }
