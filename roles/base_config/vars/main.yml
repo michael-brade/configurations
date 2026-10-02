@@ -1,14 +1,46 @@
 ---
 
+# these essential packages are assumed to be always installed on every system:
+#   apt
+#   base-files
+#   base-passwd
+#   bash
+#   coreutils
+#   dash
+#   debianutils
+#   diffutils
+#   dpkg
+#   findutils
+#   grep
+#   gzip
+#   hostname
+#   init-system-helpers
+#   libc-bin
+#   ncurses-base
+#   ncurses-bin
+#   perl-base
+#   sed
+#   sysvinit-utils
+#   tar
+#   util-linux
+# TODO: check and complain if not?
+
+
 base_config_essential_packages:
   - aptitude
-  - base-passwd
   - bash
-  - dash
 
-base_config_core_packages:
+base_config_packages:
+  - debconf
+  - debconf-utils
+  - locales
+
   - bash-completion
+  - less
+  - source-highlight
+  - ca-certificates
   - git
   - git-lfs
   - tig
   - etckeeper
+  - neovim

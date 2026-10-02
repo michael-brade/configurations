@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: MIT-0
+---
+# defaults file for base_config
+base_config_system_timezone: "Europe/Berlin"
+
+base_config_locales:
+  - "de_DE.UTF-8 UTF-8"
+  - "en_US.UTF-8 UTF-8"

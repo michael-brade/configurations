@@ -1,0 +1,6 @@
+aptitude "";
+aptitude::Auto-Fix-Broken "false";
+aptitude::Delete-Unused-Pattern "";
+aptitude::Keep-Unused-Pattern "";
+aptitude::UI "";
+aptitude::UI::Advance-On-Action "true";

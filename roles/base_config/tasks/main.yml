@@ -1,15 +1,27 @@
 # SPDX-License-Identifier: MIT-0
 ---
-- name: Install essential packages
+- name: APT configuration
+  ansible.builtin.copy:
+    src: "{{ item.key }}"
+    dest: "/etc/apt/apt.conf.d/99{{ item.value }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - { key: 'apt_config', value: 'apt' }
+    - { key: 'aptitude_config', value: 'aptitude' }
+
+- name: Update and upgrade packages
   ansible.builtin.apt:
     update_cache: true
     upgrade: "full"
-    install_recommends: false
+
+- name: Install essential packages
+  ansible.builtin.apt:
     name: "{{ base_config_essential_packages }}"
     state: present
 
 - name: Mark automatically installed packages as such
-  # become: true
   block:
     - name: Find manual packages that are required by others
       ansible.builtin.shell: |
@@ -31,11 +43,38 @@
       # Idempotence
       changed_when: "'marked as auto installed' in base_config_apt_mark_result.stdout"
 
-- name: Install core packages
+- name: Install base packages
   ansible.builtin.apt:
-    install_recommends: false
-    name: "{{ base_config_core_packages }}"
+    name: "{{ base_config_packages }}"
     state: present
+
+
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ base_config_system_timezone }}"
+
+- name: Set locale
+  block:
+    - name: Locales to be generated
+      ansible.builtin.debconf:
+        name: locales
+        question: locales/locales_to_be_generated
+        value: "{{ base_config_locales | join(', ') }}"
+        vtype: multiselect
+      register: base_config_locales_generated
+
+    - name: Set default locale
+      ansible.builtin.debconf:
+        name: locales
+        question: locales/default_environment_locale
+        value: en_US.UTF-8
+        vtype: select
+      register: base_config_lang_selected
+
+    - name: Update locale system config
+      ansible.builtin.command: dpkg-reconfigure --frontend=noninteractive locales
+      when: base_config_locales_generated.changed or base_config_lang_selected.changed
+      changed_when: true
 
 - name: Bash configuration
   ansible.builtin.blockinfile:
