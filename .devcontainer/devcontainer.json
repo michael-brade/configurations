@@ -49,12 +49,11 @@
 
             "extensions": [
                 "ms-azuretools.vscode-containers",
-                "eamodio.gitlens",
                 "EditorConfig.EditorConfig",
-
                 "redhat.ansible",
                 "ms-python.python",
-                "ms-python.vscode-pylance"
+                "ms-python.vscode-pylance",
+                "maattdd.gitless"
             ]
         }
     },
