@@ -11,6 +11,21 @@
     - { key: 'apt_config', value: 'apt' }
     - { key: 'aptitude_config', value: 'aptitude' }
 
+
+- name: Remove Docker APT language configuration
+  ansible.builtin.file:
+    path: /etc/apt/apt.conf.d/docker-no-languages
+    state: absent
+  when: ansible_facts['virtualization_type'] in ['docker', 'podman', 'containerd']
+
+# - name: In a container - disable locale excludes - TODO or enable en_US only
+#   ansible.builtin.lineinfile:
+#     path: /etc/dpkg/dpkg.cfg.d/excludes
+#     regexp: '^(path-exclude=/usr/share/locale/\*/LC_MESSAGES/\*\.mo)'
+#     line: '#\1'
+#     backrefs: true
+#   register: base_config_dpkg_excludes_changed
+
 - name: Update and upgrade packages
   ansible.builtin.apt:
     update_cache: true
@@ -48,6 +63,15 @@
     name: "{{ base_config_packages }}"
     state: present
 
+- name: Disable etckeeper's auto-commit
+  ansible.builtin.lineinfile:
+    path: /etc/etckeeper/etckeeper.conf
+    regexp: '^#?\s*{{ item.key }}='
+    line: '{{ item.key }}={{ item.value }}'
+    state: present
+  loop:
+    - { key: 'AVOID_DAILY_AUTOCOMMITS', value: '1' }
+    - { key: 'AVOID_COMMIT_BEFORE_INSTALL', value: '1' }
 
 - name: Set timezone
   community.general.timezone:
@@ -127,16 +151,3 @@
     - { key: 'la', value: "log --graph -m --pretty='tformat:%h %C(auto) %ad %an %d %s' --date=short --all" }
     - { key: 'll', value: 'log --graph -m --stat --decorate --no-merges' }
     - { key: 'lla', value: 'log --graph -m --stat --decorate --no-merges --all' }
-
-
-### etckeeper
-
-- name: Disable etckeeper's auto-commit
-  ansible.builtin.lineinfile:
-    path: /etc/etckeeper/etckeeper.conf
-    regexp: '^#?\s*{{ item.key }}='
-    line: '{{ item.key }}={{ item.value }}'
-    state: present
-  loop:
-    - { key: 'AVOID_DAILY_AUTOCOMMITS', value: '1' }
-    - { key: 'AVOID_COMMIT_BEFORE_INSTALL', value: '1' }

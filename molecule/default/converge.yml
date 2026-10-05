@@ -3,7 +3,7 @@
 # Molecule calls this playbook with `molecule converge`.
 - name: Converge
   hosts: all
-  gather_facts: false
+  gather_facts: true
 
   tasks:
     - name: Apply base_config
