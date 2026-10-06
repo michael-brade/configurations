@@ -25,12 +25,8 @@
 #   util-linux
 # TODO: check and complain if not?
 
-
-base_config_essential_packages:
-  - aptitude
-  - bash
-
 base_config_packages:
+  - aptitude
   - debconf
   - debconf-utils
   - locales

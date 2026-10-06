@@ -31,21 +31,13 @@
     update_cache: true
     upgrade: "full"
 
-- name: Install essential packages
-  ansible.builtin.apt:
-    name: "{{ base_config_essential_packages }}"
-    state: present
-
 - name: Mark automatically installed packages as such
   block:
     - name: Find manual packages that are required by others
       ansible.builtin.shell: |
         set -o pipefail
-        for pkg in $(apt-mark showmanual); do
-          if [ $(aptitude search "?installed(?depends(?exact-name(${pkg})))" | wc -l) -gt 0 ]; then
-            echo "$pkg"
-          fi
-        done
+        comm -12 <(apt-mark showmanual | sort) \
+                 <(apt-cache depends --no-conflicts --no-suggests $(dpkg-query -f '${Package}\n' -W) | awk '/Depends:/ {print $2}' | sort -u)
       register: base_config_packages_to_auto
       changed_when: false
       failed_when: false
