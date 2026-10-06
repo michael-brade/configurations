@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: MIT-0
+---
+- name: Install required packages
+  ansible.builtin.apt:
+    # update_cache: true
+    # upgrade: "full"
+    install_recommends: false
+    name: "{{ with_kernel_packages }}"
+    state: present
+
+- name: Purge legacy packages
+  ansible.builtin.apt:
+    name: "{{ with_kernel_purge }}"
+    state: absent
+    purge: true
+
+- name: Add Colemak keyboard layout to symbols/de
+  ansible.builtin.blockinfile:
+    path: /usr/share/xkeyboard-config-2/symbols/de
+    insertbefore: "// German Neo-Layout Version 2"
+    marker: "# {mark} ANSIBLE MANAGED COLEMAK LAYOUT"
+    block: "{{ lookup('ansible.builtin.file', 'Colemak.de') }}"
+
+- name: Configure keyboard layout options
+  ansible.builtin.lineinfile:
+    path: /etc/default/keyboard
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  loop:
+    - { regexp: '^XKBMODEL=', line: 'XKBMODEL="pc105"' }
+    - { regexp: '^XKBLAYOUT=', line: 'XKBLAYOUT="de"' }
+    - { regexp: '^XKBVARIANT=', line: 'XKBVARIANT="colemak"' }
+    - { regexp: '^XKBOPTIONS=', line: 'XKBOPTIONS="compose:menu,terminate:ctrl_alt_bksp"' }
+
+  notify: Apply keyboard changes immediately

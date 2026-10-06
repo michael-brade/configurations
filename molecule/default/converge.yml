@@ -9,3 +9,7 @@
     - name: Apply base_config
       ansible.builtin.include_role:
         name: base_config
+
+    - name: Apply with_kernel
+      ansible.builtin.include_role:
+        name: with_kernel

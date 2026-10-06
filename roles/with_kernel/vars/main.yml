@@ -1,0 +1,8 @@
+---
+
+with_kernel_packages:
+  - console-setup
+
+with_kernel_purge:
+  - console-common
+  - console-data
