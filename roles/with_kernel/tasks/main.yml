@@ -34,3 +34,46 @@
     - { regexp: '^XKBOPTIONS=', line: 'XKBOPTIONS="compose:menu,terminate:ctrl_alt_bksp"' }
 
   notify: Apply keyboard changes immediately
+
+- name: Install and configure Oh My Posh
+  block:
+    - name: Map system architecture to Oh My Posh binary names
+      ansible.builtin.set_fact:
+        with_kernel_omp_arch: >
+          {{ 'amd64' if ansible_facts['architecture'] == 'x86_64' else
+             'arm64' if ansible_facts['architecture'] == 'aarch64' else
+             'arm' }}
+
+    - name: Download the latest Oh My Posh binary
+      ansible.builtin.get_url:
+        url: "https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-linux-{{ with_kernel_omp_arch }}"
+        dest: /usr/local/bin/oh-my-posh
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Ensure the global themes directory exists
+      ansible.builtin.file:
+        path: /usr/local/share/oh-my-posh/themes
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Download and extract the official Oh My Posh themes
+      ansible.builtin.unarchive:
+        src: https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/themes.zip
+        dest: /usr/local/share/oh-my-posh/themes
+        remote_src: true
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Inject TTY-safe Oh My Posh initialization into user's bashrc
+      ansible.builtin.lineinfile:
+        path: "{{ ansible_facts['user_dir'] }}/.bashrc"
+        line: '[ -n "$PS1" ] && [ "$TERM" != "linux" ] && eval "$(oh-my-posh init bash --config /usr/local/share/oh-my-posh/themes/clean-tips.omp.json)"'
+        state: present
+        owner: "{{ ansible_facts['user_id'] }}"
+        group: "{{ ansible_facts['user_id'] }}"
+        mode: '0644'
