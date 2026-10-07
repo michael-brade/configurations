@@ -1,0 +1,9 @@
+{
+  "features": {
+    "ghcr.io/michael-brade/devcontainer-features/bash-aliases:1": {
+      "version": "1.0.0",
+      "resolved": "ghcr.io/michael-brade/devcontainer-features/bash-aliases@sha256:f3f2661870e81ed42dbe7880ae5768359629dbc28dae48bfd317de681eacbbf1",
+      "integrity": "sha256:f3f2661870e81ed42dbe7880ae5768359629dbc28dae48bfd317de681eacbbf1"
+    }
+  }
+}

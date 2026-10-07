@@ -13,6 +13,10 @@
         }
     },
 
+    "features": {
+        "ghcr.io/michael-brade/devcontainer-features/bash-aliases:1": {}
+    },
+
     "runArgs": [
         "--name", "Ansible-${devcontainerId}",
         "--hostname=ansible-dev-container",
@@ -20,22 +24,23 @@
         "--userns=host",
         "--network=host",
 
-        "--security-opt", "label=disable",
-        "--security-opt", "seccomp=unconfined",
-        "--security-opt", "apparmor=unconfined",
-        "--security-opt", "systempaths=unconfined",
-        "--security-opt", "unmask=/sys/fs/cgroup",
+        "--security-opt=label=disable",
+        "--security-opt=seccomp=unconfined",
+        "--security-opt=apparmor=unconfined",
+        "--security-opt=systempaths=unconfined",
+        "--security-opt=unmask=/sys/fs/cgroup",
 
         "--cap-add=SYS_ADMIN",
         "--cap-add=SYS_RESOURCE",
         "--cap-add=CAP_MKNOD",
         "--cap-add=NET_ADMIN",
-        "--device", "/dev/fuse",
-        "--device", "/dev/net/tun"
+        "--device=/dev/net/tun"
     ],
 
     // "containerUser": "root",
     "remoteUser": "developer",
+
+    "postCreateCommand": "ansible-galaxy collection install -r requirements.yml",
 
     "customizations": {
         "vscode": {
@@ -63,6 +68,13 @@
             "source": "/etc/localtime",
             "target": "/etc/localtime",
             "type": "bind"
+        },
+
+        // store podman's images as volume on host, so they don't have to be pulled every time
+        {
+            "source": "devcontainer-storage-${devcontainerId}",
+            "target": "/home/developer/.local/share/containers",
+            "type": "volume"
         },
 
         // mount host's local SSH keys to manage real remote infrastructure

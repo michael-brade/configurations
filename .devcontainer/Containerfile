@@ -21,9 +21,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         python3-pip \
         python3-venv \
         python3-full \
-        # podman in podman, fuse storage helpers
-        podman passt uidmap \
-        fuse-overlayfs
+        # podman in podman
+        podman crun uidmap \
+        catatonit \
+        passt netavark aardvark-dns
 
 RUN locale-gen en_US.UTF-8
 
@@ -42,12 +43,6 @@ RUN usermod -l developer ubuntu && \
 # provision subordinate execution spaces
 RUN echo "developer:100000:65536" > /etc/subuid && \
     echo "developer:100000:65536" > /etc/subgid
-
-# force Podman inside the container to utilize fuse-overlayfs
-RUN mkdir -p /home/developer/.config/containers
-RUN echo '[storage]\ndriver = "overlay"\n[storage.options.overlay]\nmount_program = "/usr/bin/fuse-overlayfs"' \
-    > /home/developer/.config/containers/storage.conf && \
-    chown -R developer:developer /home/developer/.config
 
 
 ### install ansible
