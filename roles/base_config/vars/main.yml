@@ -40,3 +40,4 @@ base_config_packages:
   - tig
   - etckeeper
   - neovim
+  - htop

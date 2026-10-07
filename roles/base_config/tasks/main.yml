@@ -128,6 +128,12 @@
     marker: "# {mark} ANSIBLE MANAGED BASH ALIASES"
     block: "{{ lookup('ansible.builtin.file', 'bash_aliases') }}"
 
+- name: Htop configuration
+  ansible.builtin.copy:
+    src: htop_config
+    dest: /etc/htoprc
+    mode: "0644"
+
 - name: Git configuration
   community.general.git_config:
     name: "alias.{{ item.key }}"
