@@ -1,0 +1,16 @@
+---
+- name: Destroy Podman test containers
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  # no_log: "{{ molecule_no_log }}"
+
+  tasks:
+    - name: Remove test instances
+      containers.podman.podman_container:
+        name: "{{ item }}"
+        state: absent
+        force_delete: true
+        stop_timeout: 1
+      loop: "{{ groups['all'] | reject('equalto', 'localhost') | list }}"

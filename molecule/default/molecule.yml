@@ -1,8 +1,59 @@
 ---
-driver:
-  name: podman
 
-platforms:
-  - name: ubuntu26-test
-    image: ubuntu:26.04
-    privileged: false
+ansible:
+  executor:
+    backend: ansible-playbook
+    args:
+      ansible_playbook:
+        # - --diff
+        # - --force-handlers
+        - --inventory=${MOLECULE_SCENARIO_DIRECTORY}/inventory/hosts.yml
+
+      # ansible_navigator:
+      #   - --mode stdout
+      #   - --pull-policy missing
+      #   - --execution-environment-image ghcr.io/ansible/community-ansible-dev-tools:latest
+  env:
+    ANSIBLE_FORCE_COLOR: true
+    # ANSIBLE_LOAD_CALLBACK_PLUGINS: "1"
+  cfg:
+    defaults:
+      # verbosity: 1
+      host_key_checking: false
+      # inventory: ${MOLECULE_SCENARIO_DIRECTORY}/inventory/hosts.yml
+      strategy_plugins: ${MOLECULE_PROJECT_DIRECTORY}/strategy_plugins
+
+  playbooks:
+    create: create.yml
+    destroy: destroy.yml
+    converge: converge.yml
+    # verify: verify.yml
+
+    # cleanup: cleanup.yml
+    # prepare: prepare.yml
+    # side_effect: side_effect.yml
+
+# shared_state: true
+
+# Dependency management (download roles/collections)
+dependency:
+  name: galaxy
+  options:
+    # ignore-certs: false
+    # ignore-errors: false
+    # role-file: requirements.yml
+    requirements-file: requirements.yml
+
+
+scenario:
+  converge_sequence:
+    - create
+    - converge
+    - destroy
+
+  test_sequence:
+    # - destroy
+    - create
+    - converge
+    # - verify
+    - destroy
