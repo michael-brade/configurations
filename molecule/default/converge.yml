@@ -3,7 +3,10 @@
 # Molecule calls this playbook with `molecule converge`.
 - name: Converge
   hosts: all
-  gather_facts: true
+
+  strategy: etckeeper_linear
+
+  gather_facts: true  # requires python in the container
 
   tasks:
     - name: Apply base_config
