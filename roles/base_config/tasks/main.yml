@@ -38,9 +38,11 @@
         set -o pipefail
         comm -12 <(apt-mark showmanual | sort) \
                  <(apt-cache depends --no-conflicts --no-suggests $(dpkg-query -f '${Package}\n' -W) | awk '/Depends:/ {print $2}' | sort -u)
+      args:
+        executable: /bin/bash
       register: base_config_packages_to_auto
       changed_when: false
-      failed_when: false
+      failed_when: base_config_packages_to_auto.stderr != ""
 
     - name: Switch all found packages to auto
       ansible.builtin.command: "apt-mark auto {{ item }}"

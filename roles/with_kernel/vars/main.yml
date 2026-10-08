@@ -3,6 +3,10 @@
 with_kernel_packages:
   - console-setup
 
+  - bzip2
+  - unzip
+  - xz-utils
+
 with_kernel_purge:
   - console-common
   - console-data

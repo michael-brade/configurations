@@ -16,7 +16,7 @@
 
 - name: Add Colemak keyboard layout to symbols/de
   ansible.builtin.blockinfile:
-    path: /usr/share/xkeyboard-config-2/symbols/de
+    path: /usr/share/X11/xkb/symbols/de
     insertbefore: "// German Neo-Layout Version 2"
     marker: "# {mark} ANSIBLE MANAGED COLEMAK LAYOUT"
     block: "{{ lookup('ansible.builtin.file', 'Colemak.de') }}"
