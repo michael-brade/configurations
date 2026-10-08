@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from ansible.plugins.strategy.linear import StrategyModule as LinearStrategy
 from ansible.playbook.task import Task
+from ansible.template import trust_as_template
+from ansible.utils.display import Display
 
 # from ansible.utils.unsafe_proxy import AnsibleUnsafeText
 
@@ -29,22 +31,23 @@ class StrategyModule(LinearStrategy):
         for res in results:
             task, host, utr = res.task, res.host, res.utr
 
-            print("task: ", task.get_name())
-
-            if task._uuid in self._etck_uuids:          # our own commit: never recurse
-                print("skip task, is our own")
+            if task._uuid in self._etck_uuids:
+                # our own commit task: never recurse, just log the task if something was committed
+                if utr.changed and not utr.failed:
+                    Display().display(f"[{host.name}] {task.name}")
                 continue
+
             if task.action in ("meta", "include_tasks", "import_tasks", "include_role", "include_vars"):
                 print("skip task due to action")
                 continue
             if not utr.changed or utr.skipped:
-                print("skip task due unchanged or skipped")
                 continue
-            if task.delegate_to:                        # decide your own policy here
-                print("skip task: delegated")
+            if task.delegate_to:                        # decide policy here
+                print("TODO skip task: delegated")
                 continue
+
+            # this is to allow to disable this strategy's etckeeper commit
             if host.vars.get("etckeeper_autocommit", True) is False:
-                print("skip: etckeeper no autokommit")
                 continue
 
             self._queue_commit(iterator, host, task)
@@ -52,21 +55,19 @@ class StrategyModule(LinearStrategy):
         return results
 
     def _queue_commit(self, iterator, host, orig_task):
-        print(f"commit after task: {orig_task.get_name()}")
-
-        msg = f"ansible: {orig_task.get_name()}"
         t = Task.load({
             "name": f"etckeeper commit after: {orig_task.get_name()}",
             "ansible.builtin.shell": {
                 "cmd": (
                     "command -v etckeeper >/dev/null 2>&1 && [ -d /etc/.git ] && etckeeper unclean || exit 0\n"
-                    'etckeeper commit "$ETCK_MSG"\n'
+                    'etckeeper commit "$ETCK_MSG" && echo __etckeeper_committed__\n'
                 ),
                 "executable": "/bin/sh",
             },
-            "environment": {"ETCK_MSG": msg},
+            "environment": {"ETCK_MSG": orig_task.get_name()},
             "become": True,
-            "changed_when": False,
+            "register": "_etck",
+            "changed_when": trust_as_template("'__etckeeper_committed__' in _etck.stdout"),
             "check_mode": False,
             "tags": ["always"],
         })
