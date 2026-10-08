@@ -45,11 +45,10 @@
       failed_when: base_config_packages_to_auto.stderr != ""
 
     - name: Switch all found packages to auto
-      ansible.builtin.command: "apt-mark auto {{ item }}"
-      loop: "{{ base_config_packages_to_auto.stdout_lines }}"
+      ansible.builtin.command: "apt-mark auto {{ base_config_packages_to_auto.stdout_lines | join(' ') }}"
       when: base_config_packages_to_auto.stdout_lines | length > 0
       register: base_config_apt_mark_result
-      # Idempotence
+      # Idempotence: if at least one package was changed, this text is in stdout
       changed_when: "'marked as auto installed' in base_config_apt_mark_result.stdout"
 
 - name: Install base packages
