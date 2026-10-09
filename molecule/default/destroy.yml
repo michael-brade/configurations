@@ -13,4 +13,10 @@
         state: absent
         force_delete: true
         stop_timeout: 1
-      loop: "{{ groups['all'] | reject('equalto', 'localhost') | list }}"
+      loop: "{{ groups['test_resources'] }}"
+
+    # - name: Empty the instance config
+    #   ansible.builtin.copy:
+    #     content: ""
+    #     dest: "{{ molecule_instance_config }}"
+    #     mode: "0600"

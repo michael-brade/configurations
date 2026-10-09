@@ -11,7 +11,7 @@
     - name: Spin up test instances
       containers.podman.podman_container:
         name: "{{ item }}"
-        image: "{{ hostvars[item]['image'] }}"
+        image: "{{ hostvars[item].image }}"
         state: started
         # init: true    # requires catatonit in the devcontainer
         stop_timeout: 1 # don't wait too long before killing the container
@@ -20,10 +20,10 @@
         # tty: true
         command: sleep infinity
       # Loop through all inventory hosts (excluding localhost itself)
-      loop: "{{ groups['all'] | reject('equalto', 'localhost') | list }}"
+      loop: "{{ groups['test_resources'] }}"
 
     - name: Install python for gather_facts
       containers.podman.podman_container_exec:
         name: "{{ item }}"
         command: "bash -c 'apt-get -o Acquire::ForceIPv4=true update && apt-get -o Acquire::ForceIPv4=true install -y python3'"
-      loop: "{{ groups['all'] | reject('equalto', 'localhost') | list }}"
+      loop: "{{ groups['test_resources'] }}"
