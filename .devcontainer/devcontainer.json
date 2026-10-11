@@ -14,7 +14,8 @@
     },
 
     "features": {
-        "ghcr.io/michael-brade/devcontainer-features/bash-aliases:1": {}
+        "ghcr.io/michael-brade/devcontainer-features/bash-aliases:1": {},
+        "ghcr.io/michael-brade/devcontainer-features/essential-tools:1": {}
     },
 
     "runArgs": [
@@ -53,12 +54,12 @@
             },
 
             "extensions": [
-                "ms-azuretools.vscode-containers",
                 "EditorConfig.EditorConfig",
                 "redhat.ansible",
                 "ms-python.python",
                 "ms-python.vscode-pylance",
-                "maattdd.gitless"
+                "hangxingliu.vscode-systemd-support",
+                "mads-hartmann.bash-ide-vscode"
             ]
         }
     },

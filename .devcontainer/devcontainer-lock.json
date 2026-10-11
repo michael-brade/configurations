@@ -1,9 +1,14 @@
 {
   "features": {
     "ghcr.io/michael-brade/devcontainer-features/bash-aliases:1": {
-      "version": "1.0.0",
-      "resolved": "ghcr.io/michael-brade/devcontainer-features/bash-aliases@sha256:f3f2661870e81ed42dbe7880ae5768359629dbc28dae48bfd317de681eacbbf1",
-      "integrity": "sha256:f3f2661870e81ed42dbe7880ae5768359629dbc28dae48bfd317de681eacbbf1"
+      "version": "1.1.3",
+      "resolved": "ghcr.io/michael-brade/devcontainer-features/bash-aliases@sha256:c833f5b43c837b3ace3a2676982d5665e6bd2ca7cf86fee629b0b95518c53930",
+      "integrity": "sha256:c833f5b43c837b3ace3a2676982d5665e6bd2ca7cf86fee629b0b95518c53930"
+    },
+    "ghcr.io/michael-brade/devcontainer-features/essential-tools:1": {
+      "version": "1.0.1",
+      "resolved": "ghcr.io/michael-brade/devcontainer-features/essential-tools@sha256:f0ea7a36c45804ac987e5bba6165c83be30403220a11ff80f14d7f6566bdbf90",
+      "integrity": "sha256:f0ea7a36c45804ac987e5bba6165c83be30403220a11ff80f14d7f6566bdbf90"
     }
   }
 }
