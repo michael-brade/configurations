@@ -77,3 +77,29 @@
         owner: "{{ ansible_facts['user_id'] }}"
         group: "{{ ansible_facts['user_id'] }}"
         mode: '0644'
+
+
+- name: Install system-wide Error Notification Service
+  block:
+    - name: Install system-notifier.sh
+      ansible.builtin.copy:
+        src: system-notifier.sh
+        dest: /usr/local/bin/system-notifier.sh
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Create systemd unit file
+      ansible.builtin.copy:
+        src: system-notifier.service
+        dest: /etc/systemd/system/system-notifier.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd daemon
+
+    - name: Enable and start system-notifier service
+      ansible.builtin.systemd_service:
+        name: system-notifier.service
+        state: started
+        enabled: true
