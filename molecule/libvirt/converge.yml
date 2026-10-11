@@ -1,0 +1,18 @@
+---
+# Purpose: bring the instance to the desired state by running the role under test.
+# Molecule calls this playbook with `molecule converge`.
+- name: Converge
+  hosts: all
+
+  strategy: etckeeper_linear
+
+  gather_facts: true  # requires python in the container
+
+  tasks:
+    - name: Apply base_config
+      ansible.builtin.import_role:
+        name: base_config
+
+    - name: Apply with_kernel
+      ansible.builtin.import_role:
+        name: with_kernel
