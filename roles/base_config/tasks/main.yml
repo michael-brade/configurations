@@ -151,6 +151,41 @@
         block: "{{ lookup('ansible.builtin.file', 'bash_aliases') }}"
 
 
+- name: Neovim configuration
+  block:
+    - name: Create the Neovim config dir
+      ansible.builtin.file:
+        path: "/etc/xdg/nvim"
+        state: directory
+        mode: '0755'
+
+    - name: Create autoload directory for vim-plug
+      ansible.builtin.file:
+        path: "/usr/local/share/nvim/site/{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "autoload"
+        - "plugged"
+
+    - name: Download and install vim-plug
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+        dest: /usr/local/share/nvim/site/autoload/plug.vim
+        mode: '0644'
+
+    - name: Install init.vim
+      ansible.builtin.copy:
+        src: init.vim
+        dest: /etc/xdg/nvim/init.vim
+        mode: '0644'
+
+    - name: Install Neovim plugins via vim-plug
+      ansible.builtin.command: nvim --headless +PlugInstall +qall
+      register: base_config_plug_install_result
+      changed_when: "'Installing' in base_config_plug_install_result.stderr or 'Installing' in base_config_plug_install_result.stdout"
+
+
 - name: Htop configuration
   ansible.builtin.copy:
     src: htop_config
