@@ -201,8 +201,8 @@
     - { key: 'core.autocrlf', value: 'input' }
     - { key: 'core.eol', value: 'lf' }
     - { key: 'init.defaultBranch', value: 'master' }
-    # - { key: 'diff.tool', value: 'kdiff3' }
-    # - { key: 'merge.tool', value: 'kdiff3' }
+    - { key: 'diff.tool', value: 'vimdiff' }
+    - { key: 'merge.tool', value: 'vimdiff' }
     - { key: 'merge.conflictStyle', value: 'zdiff3' }
     - { key: 'pull.rebase', value: 'true' }
     - { key: 'rebase.autoStash', value: 'true' }
@@ -296,6 +296,16 @@
 
     # committer-date-is-author-date = git rebase --committer-date-is-author-date "$1"
     # author-date-is-committer-date = git rebase --ignore-date "$1"
+
+# - name: "Git: use kdiff3 if available"
+#   community.general.git_config:
+#     name: "{{ item.key }}"
+#     value: "{{ item.value }}"
+#     scope: system
+#   loop:
+#     - { key: 'diff.tool', value: 'kdiff3' }
+#     - { key: 'merge.tool', value: 'kdiff3' }
+#   when: ansible_env.DISPLAY is defined or ansible_env.XDG_CURRENT_DESKTOP is defined
 
 - name: "Git: ensure LFS"
   block:
