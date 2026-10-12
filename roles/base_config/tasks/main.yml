@@ -194,16 +194,118 @@
 
 - name: Git configuration
   community.general.git_config:
-    name: "alias.{{ item.key }}"
+    name: "{{ item.key }}"
     value: "{{ item.value }}"
     scope: system
   loop:
-    - { key: 's', value: 'status' }
-    - { key: 'sa', value: 'status --ignored' }
-    - { key: 'd', value: 'diff' }
-    - { key: 'ds', value: 'diff --staged' }
-    - { key: 'p', value: 'pull --recurse-submodules' }
-    - { key: 'l', value: "log --graph -m --pretty='tformat:%h %C(auto) %ad %an %d %s' --date=short" }
-    - { key: 'la', value: "log --graph -m --pretty='tformat:%h %C(auto) %ad %an %d %s' --date=short --all" }
-    - { key: 'll', value: 'log --graph -m --stat --decorate --no-merges' }
-    - { key: 'lla', value: 'log --graph -m --stat --decorate --no-merges --all' }
+    - { key: 'core.autocrlf', value: 'input' }
+    - { key: 'core.eol', value: 'lf' }
+    - { key: 'init.defaultBranch', value: 'master' }
+    # - { key: 'diff.tool', value: 'kdiff3' }
+    # - { key: 'merge.tool', value: 'kdiff3' }
+    - { key: 'merge.conflictStyle', value: 'zdiff3' }
+    - { key: 'pull.rebase', value: 'true' }
+    - { key: 'rebase.autoStash', value: 'true' }
+    - { key: 'rebase.missingCommitsCheck', value: 'warn' }
+
+    # aliases
+    - { key: 'alias.s', value: 'status' }
+    - { key: 'alias.sa', value: 'status --ignored' }
+    - { key: 'alias.d', value: 'diff' }
+    - { key: 'alias.ds', value: 'diff --staged' }
+    - { key: 'alias.p', value: 'pull --recurse-submodules' }
+    - { key: 'alias.l', value: "log --graph -m --pretty='tformat:%h %C(auto) %ad %an %d %s' --date=short" }
+    - { key: 'alias.la', value: "log --graph -m --pretty='tformat:%h %C(auto) %ad %an %d %s' --date=short --all" }
+    - { key: 'alias.ll', value: 'log --graph -m --stat --decorate --no-merges' }
+    - { key: 'alias.lla', value: 'log --graph -m --stat --decorate --no-merges --all' }
+    - key: 'alias.ls-large-files'
+      value: |
+        !f() { \
+            # List the $1 biggest files in the repository
+            echo "The pack column is the size of the object, compressed, inside the pack file."; \
+            git verify-pack -v .git/objects/pack/pack-*.idx | grep -v chain | sort -k3nr | head -n $1 | { \
+                echo 'size pack SHA location'; \
+                while read -r line; do \
+                    size=$(echo $line | cut -f 3 -d ' ' | numfmt --to=iec); \
+                    compressedSize=$(echo $line | cut -f 4 -d ' ' | numfmt --to=iec); \
+                    sha=$(echo $line | cut -f 1 -d ' '); \
+                    other=$(git rev-list --all --objects | grep $sha); \
+                    echo $size $compressedSize $other; \
+                done } | column -t -s ' '; \
+        }; f
+    - key: 'alias.remove-from-all-history'
+      value: |
+        !f() { \
+            # Delete an expression from all history
+            # Usage: git remove-from-all-history "lib/Model/*.js"
+            if command -v git-filter-repo >/dev/null 2>&1; then \
+                git filter-repo --path "$1" --invert-paths; \
+            else \
+                # To rewrite only some revisions: use HEAD~10..HEAD instead of -- --all (doesn't work with filter-repo)
+                echo "git-filter-repo not found. Falling back to filter-branch - don't forget delete-original afterwards!"; \
+                filter="git rm -r --cached --ignore-unmatch $1"; \
+                git filter-branch -f --tag-name-filter cat --prune-empty --index-filter "$filter" -- --all; \
+                git for-each-ref --format="%(refname)" refs/original/ | xargs -n 1 git update-ref -d; \
+                git expire-and-prune-now; \
+            fi; \
+        }; f
+    - key: 'alias.extract-dir'
+      value: |
+        !f() { \
+            # Reduce history to the given directory
+            if command -v git-filter-repo >/dev/null 2>&1; then \
+                git filter-repo --path "$1"; \
+            else \
+                echo "git-filter-repo not found. Falling back to filter-branch..."; \
+                git filter-branch --tag-name-filter cat --prune-empty --subdirectory-filter "$1" -- --all; \
+            fi; \
+        }; f
+    - key: 'alias.delete-original'
+      value: |
+        !f() { \
+            # Delete backup made by filter-branch
+            git for-each-ref --format="%(refname)" refs/original/ | xargs -n 1 git update-ref -d; \
+        }; f
+    - key: 'alias.expire-and-prune-now'
+      value: |
+        !f() { \
+            # Actually prune the repository
+            git reflog expire --expire=now --all && git gc --prune=now --aggressive; \
+        }; f
+    - key: 'alias.all-commits-by'
+      value: |
+        !f() { \
+            # Rewrite ALL commits in history to the given name ($1) and email ($2)
+            if command -v git-filter-repo >/dev/null 2>&1; then \
+                git filter-repo --commit-callback "
+                    commit.author_name = b'$1'
+                    commit.author_email = b'$2'
+                    commit.committer_name = b'$1'
+                    commit.committer_email = b'$2'
+                "; \
+            else \
+                echo "git-filter-repo not found. Falling back to filter-branch..."; \
+                git filter-branch -f --tag-name-filter cat --env-filter '
+                    export GIT_AUTHOR_NAME="$1"
+                    export GIT_AUTHOR_EMAIL="$2"
+                    export GIT_COMMITTER_NAME="$1"
+                    export GIT_COMMITTER_EMAIL="$2";
+                ' -- --all; \
+            fi; \
+        }; f
+
+    # committer-date-is-author-date = git rebase --committer-date-is-author-date "$1"
+    # author-date-is-committer-date = git rebase --ignore-date "$1"
+
+- name: "Git: ensure LFS"
+  block:
+    - name: "Git: check if LFS needs enabling"
+      ansible.builtin.command: git lfs install --system --check
+      register: base_config_git_lfs_status
+      changed_when: false
+      failed_when: false
+
+    - name: "Git: activate LFS globally"
+      ansible.builtin.command: git lfs install --system
+      changed_when: true
+      when: base_config_git_lfs_status.rc != 0
