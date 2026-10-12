@@ -94,40 +94,62 @@
       changed_when: true
 
 - name: Bash configuration
-  ansible.builtin.blockinfile:
-    path: /etc/bash.bashrc
-    insertafter: EOF
-    marker: "# {mark} ANSIBLE MANAGED BASH CONFIG"
-    block: "{{ lookup('ansible.builtin.file', 'bash_config') }}"
+  block:
+    - name: Remove /etc/skel/.bashrc and use /etc/bash.bashrc instead
+      ansible.builtin.file:
+        path: /etc/skel/.bashrc
+        state: absent
 
-- name: Bash check window size
-  ansible.builtin.lineinfile:
-    path: /etc/bash.bashrc
-    line: 'shopt -s checkwinsize'
-    state: present
-    create: false
+    - name: Update /etc/bash.bashrc
+      ansible.builtin.blockinfile:
+        path: /etc/bash.bashrc
+        insertafter: EOF
+        marker: "# {mark} ANSIBLE MANAGED BASH CONFIG"
+        block: "{{ lookup('ansible.builtin.file', 'bash_config') }}"
 
-- name: Enable Bash completion
-  ansible.builtin.replace:
-    path: /etc/bash.bashrc
-    regexp: |
-      (?m)^# (enable bash completion in interactive shells)\n#(if.*)\n#(.*)\n#(.*bash_completion)\n#(.*)\n#(.*)\n#(.*)\n#(fi)
-    replace: |
-      # \1
-      \2
-      \3
-      \4
-      \5
-      \6
-      \7
-      \8
+    - name: Install lesspipe-combined.sh
+      ansible.builtin.copy:
+        src: lesspipe-combined.sh
+        dest: /usr/local/bin
+        mode: "755"
 
-- name: Bash aliases
-  ansible.builtin.blockinfile:
-    path: /etc/bash.bashrc
-    insertafter: EOF
-    marker: "# {mark} ANSIBLE MANAGED BASH ALIASES"
-    block: "{{ lookup('ansible.builtin.file', 'bash_aliases') }}"
+    - name: Bash check window size
+      ansible.builtin.lineinfile:
+        path: /etc/bash.bashrc
+        line: 'shopt -s checkwinsize'
+        state: present
+        create: false
+
+    - name: Enable Bash completion
+      ansible.builtin.replace:
+        path: /etc/bash.bashrc
+        regexp: |
+          (?m)
+          ^# (enable bash completion in interactive shells)
+          #(if.*)
+          #(.*)
+          #(.*bash_completion)
+          #(.*)
+          #(.*)
+          #(.*)
+          #(fi)
+        replace: |
+          # \1
+          \2
+          \3
+          \4
+          \5
+          \6
+          \7
+          \8
+
+    - name: Bash aliases
+      ansible.builtin.blockinfile:
+        path: /etc/bash.bashrc
+        insertafter: EOF
+        marker: "# {mark} ANSIBLE MANAGED BASH ALIASES"
+        block: "{{ lookup('ansible.builtin.file', 'bash_aliases') }}"
+
 
 - name: Htop configuration
   ansible.builtin.copy:

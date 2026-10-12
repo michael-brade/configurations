@@ -1,7 +1,8 @@
+# shellcheck shell=bash
 umask 22
 
 # color prompt
-if [ "`id -u`" -eq 0 ]; then
+if [ "$(id -u)" -eq 0 ]; then
     PS1='${debian_chroot:+($debian_chroot)}\[\033[01;31m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
 else
     PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
@@ -33,7 +34,7 @@ colors() {
 
             seq0="${vals:+\e[${vals}m}"
             printf "  %-9s" "${seq0:-(default)}"
-            printf " ${seq0}TEXT\e[m"
+            printf " %sTEXT\e[m" "${seq0}"
             printf " \e[${vals:+${vals+$vals;}}1mBOLD\e[m"
         done
         echo; echo
@@ -47,7 +48,7 @@ export LESSCHARSET=utf-8
 export LESS="-QRMSi -c -y1"
 
 # make less more friendly, includes lesspipe
-export LESSOPEN="| /usr/share/source-highlight/src-hilite-lesspipe.sh %s"
+export LESSOPEN="| /usr/local/bin/lesspipe-combined.sh %s"
 
 
 
