@@ -13,14 +13,18 @@
   vars:
     # export LIBVIRT_DEFAULT_URI="qemu:///..." in the devcontainer could overwrite this default
     libvirt_uri: "{{ lookup('ansible.builtin.env', 'LIBVIRT_DEFAULT_URI') | default('qemu:///system', true) }}"
-    images_dir: /var/lib/libvirt/images
+    images_dir: /var/lib/libvirt/images/molecule
 
-    base_image_url: https://cloud.debian.org/images/cloud/sid/daily/20260909-2596/debian-sid-nocloud-amd64-daily-20260909-2596.qcow2
-    base_image: "{{ images_dir }}/debian-sid-nocloud.qcow2"
-    vm_password: "{{ lookup('ansible.builtin.env', 'MOLECULE_VM_PASSWORD') | default('changeme', true) }}"
+    # use cloud-init (genericcloud)
+    base_image_url: https://cloud.debian.org/images/cloud/sid/daily/20261012-2629/debian-sid-genericcloud-amd64-daily-20261012-2629.qcow2
+    base_image: "{{ images_dir }}/debian-sid-cloud-init.qcow2"
+
+    # Optional console password; empty = password login disabled (key only)
+    vm_password: "{{ lookup('ansible.builtin.env', 'MOLECULE_VM_PASSWORD') | default('', true) }}"
     scratch_dir: "{{ molecule_ephemeral_directory }}"
     ip_inventory_file: "{{ hostvars[groups['test_resources'][0]].inventory_dir }}/libvirt_hosts.yml"
-    # Only the VMs we actually built in this run (evaluated lazily, after `disks` is registered)
+
+    # Only the VMs whose disk was freshly created in this run (lazy, after `disks` is registered)
     new_vms: "{{ disks.results | selectattr('changed') | map(attribute='item') | list }}"
 
   tasks:
@@ -31,10 +35,10 @@
             'name': item,
             'memory': hostvars[item].libvirt_memory | default(1024),
             'vcpus': hostvars[item].libvirt_vcpus | default(4),
-            'disk_size': hostvars[item].libvirt_disk_size | default('+10G'),
+            'disk_size': hostvars[item].libvirt_disk_size | default(''),
             'bridge': hostvars[item].libvirt_bridge | default('vlanbr'),
             'user': hostvars[item].ansible_user | default('debian'),
-            'pubkey': hostvars[item].libvirt_ssh_pubkey | default(lookup('ansible.builtin.env', 'HOME') ~ '/.ssh/id_ed25519.pub')
+            'pubkey': hostvars[item].libvirt_ssh_pubkey | default('~/.ssh/id_ed25519.pub') | expanduser
           }] }}
       loop: "{{ groups['test_resources'] }}"
 
@@ -44,27 +48,6 @@
         dest: "{{ base_image }}"
         mode: "0644"
 
-    - name: Write sshd_config used for customization
-      ansible.builtin.copy:
-        dest: "{{ scratch_dir }}/sshd_config"
-        mode: "0644"
-        content: |
-          Port 22
-          ListenAddress 0.0.0.0
-          PubkeyAuthentication yes
-          PasswordAuthentication no
-          UsePAM yes
-          Subsystem sftp /usr/lib/openssh/sftp-server
-
-    - name: Write sudoers drop-ins
-      ansible.builtin.copy:
-        dest: "{{ scratch_dir }}/sudoers_{{ item.name }}"
-        mode: "0440"
-        content: "{{ item.user }} ALL=(ALL) NOPASSWD:ALL\n"
-      loop: "{{ vms }}"
-      loop_control:
-        label: "{{ item.name }}"
-
     - name: List existing domains
       community.libvirt.virt:
         command: list_vms
@@ -72,7 +55,7 @@
       register: existing
 
     # force: false -> only copies when the target does not exist yet.
-    # Everything that follows (resize, customize) runs only for freshly copied disks.
+    # Resize only runs for freshly copied disks.
     - name: Create disk images from the base image
       ansible.builtin.copy:
         src: "{{ base_image }}"
@@ -86,7 +69,7 @@
         label: "{{ item.name }}"
       when: item.name not in existing.list_vms
 
-    - name: Resize disk images
+    - name: Resize disk images (cloud-init grows the root fs on first boot to adapt to the new disk size)
       ansible.builtin.command:
         argv:
           - qemu-img
@@ -97,38 +80,74 @@
       loop: "{{ new_vms }}"
       loop_control:
         label: "{{ item.name }}"
+      when: item.disk_size | length > 0
 
-    - name: Customize images (ssh, user, sudo, key)
-      ansible.builtin.command:
-        argv:
-          - virt-customize
-          - -a
-          - "{{ images_dir }}/{{ item.name }}.qcow2"
-          - --hostname
-          - "{{ item.name }}"
-          - --network
-          - --run-command
-          - apt-get update && apt-get install -y openssh-server sudo python3
-          - --upload
-          - "{{ scratch_dir }}/sshd_config:/etc/ssh/sshd_config"
-          - --run-command
-          - systemctl enable ssh
-          - --run-command
-          - "useradd -m -s /bin/bash {{ item.user }}"
-          - --password
-          - "{{ item.user }}:password:{{ vm_password }}"
-          - --upload
-          - "{{ scratch_dir }}/sudoers_{{ item.name }}:/etc/sudoers.d/{{ item.user }}"
-          - --run-command
-          - "chmod 0440 /etc/sudoers.d/{{ item.user }}"
-          - --ssh-inject
-          - "{{ item.user }}:file:{{ item.pubkey }}"
-      environment:
-        LIBGUESTFS_BACKEND: direct
-      changed_when: true
-      loop: "{{ new_vms }}"
-      loop_control:
-        label: "{{ item.name }}"
+    - name: Set up cloud-init ISOs
+      block:
+        - name: Create cloud-init directories
+          ansible.builtin.file:
+            path: "{{ scratch_dir }}/cloud-init/{{ item.name }}"
+            state: directory
+            mode: "0755"
+          loop: "{{ vms }}"
+          loop_control:
+            label: "{{ item.name }}"
+
+        - name: Write cloud-init user-data
+          ansible.builtin.copy:
+            dest: "{{ scratch_dir }}/cloud-init/{{ item.name }}/user-data"
+            mode: "0644"
+            content: |
+              #cloud-config
+              users:
+                - name: {{ item.user }}
+                  shell: /bin/bash
+                  sudo: ALL=(ALL) NOPASSWD:ALL
+                  lock_passwd: {{ 'false' if vm_password else 'true' }}
+                  ssh_authorized_keys:
+                    - {{ lookup('ansible.builtin.file', item.pubkey) | trim }}
+              ssh_pwauth: false
+              {% if vm_password %}
+              chpasswd:
+                expire: false
+                users:
+                  - {name: "{{ item.user }}", password: "{{ vm_password }}", type: text}
+              {% endif %}
+          loop: "{{ vms }}"
+          loop_control:
+            label: "{{ item.name }}"
+
+        - name: Write cloud-init meta-data
+          ansible.builtin.copy:
+            dest: "{{ scratch_dir }}/cloud-init/{{ item.name }}/meta-data"
+            mode: "0644"
+            content: |
+              instance-id: {{ item.name }}
+              local-hostname: {{ item.name }}
+          loop: "{{ vms }}"
+          loop_control:
+            label: "{{ item.name }}"
+
+        # Volume label must be "cidata" for the NoCloud datasource
+        - name: Build cloud-init seed ISOs
+          ansible.builtin.command:
+            argv:
+              - xorriso
+              - -as
+              - mkisofs
+              - -output
+              - "{{ images_dir }}/{{ item.name }}-seed.iso"
+              - -volid
+              - cidata
+              - -joliet
+              - -rock
+              - user-data
+              - meta-data
+            chdir: "{{ scratch_dir }}/cloud-init/{{ item.name }}"
+            creates: "{{ images_dir }}/{{ item.name }}-seed.iso"
+          loop: "{{ vms }}"
+          loop_control:
+            label: "{{ item.name }}"
 
     - name: Define VMs
       community.libvirt.virt:
@@ -153,10 +172,14 @@
     - name: Wait for an IPv4 address
       ansible.builtin.shell: |
         set -o pipefail
-        for src in lease agent arp; do
+        for src in lease agent arp
+        do
           ip=$(virsh -c {{ libvirt_uri }} domifaddr {{ item.name }} --source "$src" 2>/dev/null \
                | awk '/ipv4/ {split($4,a,"/"); print a[1]; exit}')
-          if [ -n "$ip" ]; then echo "$ip"; exit 0; fi
+          if [ -n "$ip" ]; then
+            echo "$ip"
+            exit 0
+          fi
         done
         exit 1
       register: vm_ip

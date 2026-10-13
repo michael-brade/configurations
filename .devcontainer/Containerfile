@@ -27,13 +27,14 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         python3-venv \
         python3-full \
         # libvirt
+        libvirt-clients qemu-utils xorriso \
         # for pip to be able to build libvirt-python
         gcc pkg-config python3-dev libvirt-dev
 
 RUN locale-gen en_US.UTF-8
 
 
-### user
+### users
 
 # rename ubuntu user/group/home to developer
 RUN usermod -l developer ubuntu && \
@@ -41,13 +42,26 @@ RUN usermod -l developer ubuntu && \
     usermod -d /home/developer -m developer
 # RUN useradd -m -s /bin/bash developer
 
-# (Optional) if the user should get sudo-rights without password:
+# (Optional) if sudo is installed and the user should get sudo-rights without password:
 # RUN echo "developer ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/developer
 
 # provision subordinate execution spaces
 RUN echo "developer:100000:65536" > /etc/subuid && \
     echo "developer:100000:65536" > /etc/subgid
 
+
+# create a host-matching libvirt group and add it to developer user
+COPY libvirt.gid /tmp/libvirt.gid
+RUN <<EOF
+    gid="$(cat /tmp/libvirt.gid)"
+
+    if [ "$gid" != "0" ]
+    then
+        getent group "$gid" >/dev/null || groupadd -g "$gid" libvirt
+        usermod -aG "$(getent group "$gid" | cut -d: -f1)" developer
+    fi
+    rm /tmp/libvirt.gid
+EOF
 
 ### install ansible
 

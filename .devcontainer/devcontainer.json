@@ -13,6 +13,12 @@
         }
     },
 
+    // runs before the build, so Containerfile can use the result
+    "initializeCommand": {
+        // "create-image-dir": "mkdir -p /var/lib/libvirt/images/molecule && chgrp libvirt /var/lib/libvirt/images/molecule",
+        "record-gid": "stat -c %g /run/libvirt/libvirt-sock > .devcontainer/libvirt.gid || echo 0 > .devcontainer/libvirt.gid"
+    },
+
     "features": {
         "ghcr.io/michael-brade/devcontainer-features/bash-aliases:1": {},
         "ghcr.io/michael-brade/devcontainer-features/essential-tools:1": {}
@@ -35,6 +41,7 @@
         "--cap-add=SYS_RESOURCE",
         "--cap-add=CAP_MKNOD",
         "--cap-add=NET_ADMIN",
+
         "--device=/dev/net/tun"
     ],
 
@@ -76,6 +83,19 @@
             "source": "devcontainer-storage-${devcontainerId}",
             "target": "/home/developer/.local/share/containers",
             "type": "volume"
+        },
+
+        // store libvirt images on the host as well
+        {
+            "source": "/var/lib/libvirt/images/molecule",
+            "target": "/var/lib/libvirt/images/molecule",
+            "type": "bind"
+        },
+
+        {
+            "source": "/run/libvirt/libvirt-sock",
+            "target": "/run/libvirt/libvirt-sock",
+            "type": "bind"
         },
 
         // mount host's local SSH keys to manage real remote infrastructure
