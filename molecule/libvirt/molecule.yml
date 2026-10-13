@@ -13,6 +13,7 @@ ansible:
   cfg:
     defaults:
       host_key_checking: false
+      strategy_plugins: ${MOLECULE_PROJECT_DIRECTORY}/strategy_plugins
     ssh_connection:
       pipelining: true
   env:

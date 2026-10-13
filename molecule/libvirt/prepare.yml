@@ -1,0 +1,14 @@
+---
+- name: Converge
+  hosts: all
+
+  gather_facts: false
+
+  tasks:
+    - name: Install qemu-guest-agent and python
+      become: true
+      ansible.builtin.apt:
+        update_cache: true
+        name: qemu-guest-agent python3
+        state: present
+        install_recommends: false

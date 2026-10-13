@@ -10,7 +10,6 @@
   vars:
     libvirt_uri: "{{ lookup('ansible.builtin.env', 'LIBVIRT_DEFAULT_URI') | default('qemu:///system', true) }}"
     images_dir: /var/lib/libvirt/images/molecule
-    scratch_dir: "{{ molecule_ephemeral_directory }}"
     ip_inventory_file: "{{ hostvars[groups['test_resources'][0]].inventory_dir }}/libvirt_hosts.yml"
 
   tasks:
@@ -45,7 +44,7 @@
            | map('regex_replace', '^(.*)$', images_dir ~ '/\1.qcow2') | list
          + groups['test_resources']
            | map('regex_replace', '^(.*)$', images_dir ~ '/\1-seed.iso') | list
-         + [scratch_dir ~ '/cloud-init', ip_inventory_file] }}
+         + [molecule_ephemeral_directory ~ '/cloud-init', ip_inventory_file] }}
 
     # The shared base image (debian-sid-cloud-init.qcow2) is kept on purpose,
     # so the next create does not download it again.

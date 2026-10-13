@@ -19,10 +19,10 @@
     base_image_url: https://cloud.debian.org/images/cloud/sid/daily/20261012-2629/debian-sid-genericcloud-amd64-daily-20261012-2629.qcow2
     base_image: "{{ images_dir }}/debian-sid-cloud-init.qcow2"
 
+    ip_inventory_file: "{{ hostvars[groups['test_resources'][0]].inventory_dir }}/libvirt_hosts.yml"
+
     # Optional console password; empty = password login disabled (key only)
     vm_password: "{{ lookup('ansible.builtin.env', 'MOLECULE_VM_PASSWORD') | default('', true) }}"
-    scratch_dir: "{{ molecule_ephemeral_directory }}"
-    ip_inventory_file: "{{ hostvars[groups['test_resources'][0]].inventory_dir }}/libvirt_hosts.yml"
 
     # Only the VMs whose disk was freshly created in this run (lazy, after `disks` is registered)
     new_vms: "{{ disks.results | selectattr('changed') | map(attribute='item') | list }}"
@@ -86,7 +86,7 @@
       block:
         - name: Create cloud-init directories
           ansible.builtin.file:
-            path: "{{ scratch_dir }}/cloud-init/{{ item.name }}"
+            path: "{{ molecule_ephemeral_directory }}/cloud-init/{{ item.name }}"
             state: directory
             mode: "0755"
           loop: "{{ vms }}"
@@ -95,7 +95,7 @@
 
         - name: Write cloud-init user-data
           ansible.builtin.copy:
-            dest: "{{ scratch_dir }}/cloud-init/{{ item.name }}/user-data"
+            dest: "{{ molecule_ephemeral_directory }}/cloud-init/{{ item.name }}/user-data"
             mode: "0644"
             content: |
               #cloud-config
@@ -119,7 +119,7 @@
 
         - name: Write cloud-init meta-data
           ansible.builtin.copy:
-            dest: "{{ scratch_dir }}/cloud-init/{{ item.name }}/meta-data"
+            dest: "{{ molecule_ephemeral_directory }}/cloud-init/{{ item.name }}/meta-data"
             mode: "0644"
             content: |
               instance-id: {{ item.name }}
@@ -143,7 +143,7 @@
               - -rock
               - user-data
               - meta-data
-            chdir: "{{ scratch_dir }}/cloud-init/{{ item.name }}"
+            chdir: "{{ molecule_ephemeral_directory }}/cloud-init/{{ item.name }}"
             creates: "{{ images_dir }}/{{ item.name }}-seed.iso"
           loop: "{{ vms }}"
           loop_control:
@@ -172,15 +172,12 @@
     - name: Wait for an IPv4 address
       ansible.builtin.shell: |
         set -o pipefail
-        for src in lease agent arp
-        do
-          ip=$(virsh -c {{ libvirt_uri }} domifaddr {{ item.name }} --source "$src" 2>/dev/null \
-               | awk '/ipv4/ {split($4,a,"/"); print a[1]; exit}')
-          if [ -n "$ip" ]; then
-            echo "$ip"
-            exit 0
-          fi
-        done
+        ip=$(virsh -c {{ libvirt_uri }} domifaddr {{ item.name }} --source arp 2>/dev/null \
+              | awk '/ipv4/ {split($4,a,"/"); print a[1]; exit}')
+        if [ -n "$ip" ]; then
+          echo "$ip"
+          exit 0
+        fi
         exit 1
       register: vm_ip
       until: vm_ip.rc == 0
@@ -199,12 +196,6 @@
       loop: "{{ vm_ip.results }}"
       loop_control:
         label: "{{ item.item.name }}"
-
-    - name: Ensure generated inventory directory exists
-      ansible.builtin.file:
-        path: "{{ ip_inventory_file | dirname }}"
-        state: directory
-        mode: "0755"
 
     - name: Write ansible_host for every VM
       ansible.builtin.copy:

@@ -1,3 +1,4 @@
 /.ansible/
 __pycache__
 /.devcontainer/libvirt.gid
+/molecule/libvirt/inventory/libvirt_hosts.yml
