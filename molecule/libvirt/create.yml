@@ -1,4 +1,7 @@
 ---
+# molecule/libvirt/create.yml
+# VMs come from the group "test_resources" in inventory/hosts.yml.
+
 - name: Create libvirt test VMs
   hosts: localhost
   connection: local
@@ -8,33 +11,42 @@
   no_log: "{{ molecule_no_log }}"
 
   vars:
-    libvirt_uri: qemu:///system
+    # export LIBVIRT_DEFAULT_URI="qemu:///..." in the devcontainer could overwrite this default
+    libvirt_uri: "{{ lookup('ansible.builtin.env', 'LIBVIRT_DEFAULT_URI') | default('qemu:///system', true) }}"
     images_dir: /var/lib/libvirt/images
 
     base_image_url: https://cloud.debian.org/images/cloud/sid/daily/20260909-2596/debian-sid-nocloud-amd64-daily-20260909-2596.qcow2
-    base_image: "{{ images_dir }}/debian-sid-nocloud-base.qcow2"
-
-    ssh_user: debian
-    ssh_pubkey: "{{ lookup('env', 'HOME') }}/.ssh/id_ed25519.pub"
-    ssh_identity: "{{ lookup('env', 'HOME') }}/.ssh/id_ed25519"
-
-    # Better: ansible-vault / env var instead of a plaintext password
-    ssh_user_password: "{{ lookup('env', 'MOLECULE_VM_PASSWORD') | default('changeme', true) }}"
+    base_image: "{{ images_dir }}/debian-sid-nocloud.qcow2"
+    vm_password: "{{ lookup('ansible.builtin.env', 'MOLECULE_VM_PASSWORD') | default('changeme', true) }}"
+    scratch_dir: "{{ molecule_ephemeral_directory }}"
+    ip_inventory_file: "{{ hostvars[groups['test_resources'][0]].inventory_dir }}/libvirt_hosts.yml"
+    # Only the VMs we actually built in this run (evaluated lazily, after `disks` is registered)
+    new_vms: "{{ disks.results | selectattr('changed') | map(attribute='item') | list }}"
 
   tasks:
-    - name: Download VM image
+    - name: Collect VM definitions from the inventory
+      ansible.builtin.set_fact:
+        vms: >-
+          {{ vms | default([]) + [{
+            'name': item,
+            'memory': hostvars[item].libvirt_memory | default(1024),
+            'vcpus': hostvars[item].libvirt_vcpus | default(4),
+            'disk_size': hostvars[item].libvirt_disk_size | default('+10G'),
+            'bridge': hostvars[item].libvirt_bridge | default('vlanbr'),
+            'user': hostvars[item].ansible_user | default('debian'),
+            'pubkey': hostvars[item].libvirt_ssh_pubkey | default(lookup('ansible.builtin.env', 'HOME') ~ '/.ssh/id_ed25519.pub')
+          }] }}
+      loop: "{{ groups['test_resources'] }}"
+
+    - name: Download VM base image (once)
       ansible.builtin.get_url:
-        # url: "{{ item.image_url }}"
-        # dest: "{{ pool_path }}/{{ item.name }}.qcow2"
         url: "{{ base_image_url }}"
         dest: "{{ base_image }}"
         mode: "0644"
-      # loop: "{{ groups['test_resources'] }}"
-
 
     - name: Write sshd_config used for customization
       ansible.builtin.copy:
-        dest: /tmp/molecule_sshd_config
+        dest: "{{ scratch_dir }}/sshd_config"
         mode: "0644"
         content: |
           Port 22
@@ -44,100 +56,107 @@
           UsePAM yes
           Subsystem sftp /usr/lib/openssh/sftp-server
 
-    - name: Write sudoers drop-in
+    - name: Write sudoers drop-ins
       ansible.builtin.copy:
-        dest: /tmp/molecule_sudoers
+        dest: "{{ scratch_dir }}/sudoers_{{ item.name }}"
         mode: "0440"
-        content: "{{ ssh_user }} ALL=(ALL) NOPASSWD:ALL\n"
-
-    - name: Check which VMs already exist
-      ansible.builtin.command: "virsh -c {{ libvirt_uri }} dominfo {{ item.name }}"
-      register: dominfo
-      changed_when: false
-      failed_when: false
-      loop: "{{ molecule_yml.platforms }}"
-
-    - name: Create disk image from base
-      ansible.builtin.command: cp --reflink=auto {{ base_image }} {{ images_dir }}/{{ item.item.name }}.qcow2
-      args:
-        creates: "{{ images_dir }}/{{ item.item.name }}.qcow2"
-      loop: "{{ dominfo.results }}"
-      when: item.rc != 0
+        content: "{{ item.user }} ALL=(ALL) NOPASSWD:ALL\n"
+      loop: "{{ vms }}"
       loop_control:
-        label: "{{ item.item.name }}"
+        label: "{{ item.name }}"
 
-    - name: Resize disk image
-      ansible.builtin.command: qemu-img resize {{ images_dir }}/{{ item.item.name }}.qcow2 {{ item.item.disk_size | default('+10G') }}
-      loop: "{{ dominfo.results }}"
-      when: item.rc != 0
+    - name: List existing domains
+      community.libvirt.virt:
+        command: list_vms
+        uri: "{{ libvirt_uri }}"
+      register: existing
+
+    # force: false -> only copies when the target does not exist yet.
+    # Everything that follows (resize, customize) runs only for freshly copied disks.
+    - name: Create disk images from the base image
+      ansible.builtin.copy:
+        src: "{{ base_image }}"
+        dest: "{{ images_dir }}/{{ item.name }}.qcow2"
+        remote_src: true
+        force: false
+        mode: "0644"
+      register: disks
+      loop: "{{ vms }}"
       loop_control:
-        label: "{{ item.item.name }}"
+        label: "{{ item.name }}"
+      when: item.name not in existing.list_vms
 
-    - name: Customize image (ssh, user, sudo, key)
+    - name: Resize disk images
+      ansible.builtin.command:
+        argv:
+          - qemu-img
+          - resize
+          - "{{ images_dir }}/{{ item.name }}.qcow2"
+          - "{{ item.disk_size }}"
+      changed_when: true
+      loop: "{{ new_vms }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Customize images (ssh, user, sudo, key)
       ansible.builtin.command:
         argv:
           - virt-customize
           - -a
-          - "{{ images_dir }}/{{ item.item.name }}.qcow2"
+          - "{{ images_dir }}/{{ item.name }}.qcow2"
           - --hostname
-          - "{{ item.item.name }}"
+          - "{{ item.name }}"
           - --network
           - --run-command
           - apt-get update && apt-get install -y openssh-server sudo python3
           - --upload
-          - /tmp/molecule_sshd_config:/etc/ssh/sshd_config
+          - "{{ scratch_dir }}/sshd_config:/etc/ssh/sshd_config"
           - --run-command
           - systemctl enable ssh
           - --run-command
-          - "id {{ ssh_user }} >/dev/null 2>&1 || useradd -m -s /bin/bash {{ ssh_user }}"
+          - "useradd -m -s /bin/bash {{ item.user }}"
           - --password
-          - "{{ ssh_user }}:password:{{ ssh_user_password }}"
+          - "{{ item.user }}:password:{{ vm_password }}"
           - --upload
-          - /tmp/molecule_sudoers:/etc/sudoers.d/{{ ssh_user }}
+          - "{{ scratch_dir }}/sudoers_{{ item.name }}:/etc/sudoers.d/{{ item.user }}"
           - --run-command
-          - chmod 0440 /etc/sudoers.d/{{ ssh_user }}
+          - "chmod 0440 /etc/sudoers.d/{{ item.user }}"
           - --ssh-inject
-          - "{{ ssh_user }}:file:{{ ssh_pubkey }}"
-      loop: "{{ dominfo.results }}"
-      when: item.rc != 0
+          - "{{ item.user }}:file:{{ item.pubkey }}"
+      environment:
+        LIBGUESTFS_BACKEND: direct
+      changed_when: true
+      loop: "{{ new_vms }}"
       loop_control:
-        label: "{{ item.item.name }}"
+        label: "{{ item.name }}"
 
-    - name: Create and start VMs
-      ansible.builtin.command:
-        argv:
-          - virt-install
-          - --connect
-          - "{{ libvirt_uri }}"
-          - --name
-          - "{{ item.item.name }}"
-          - --memory
-          - "{{ item.item.memory | default(1024) }}"
-          - --vcpus
-          - "{{ item.item.vcpus | default(4) }}"
-          - --disk
-          - "{{ images_dir }}/{{ item.item.name }}.qcow2,device=disk,bus=virtio"
-          - --os-variant
-          - "{{ item.item.os_variant | default('debian13') }}"
-          - --virt-type
-          - kvm
-          - --graphics
-          - none  # vnc
-          - --network
-          - "bridge={{ item.item.bridge | default('vlanbr') }},model=virtio"
-          - --import
-          - --noautoconsole
-      loop: "{{ dominfo.results }}"
-      when: item.rc != 0
+    - name: Define VMs
+      community.libvirt.virt:
+        command: define
+        xml: "{{ lookup('ansible.builtin.template', 'domain.xml.j2') }}"
+        uri: "{{ libvirt_uri }}"
+      loop: "{{ vms }}"
       loop_control:
-        label: "{{ item.item.name }}"
+        label: "{{ item.name }}"
+      when: item.name not in existing.list_vms
 
+    - name: Start VMs
+      community.libvirt.virt:
+        name: "{{ item.name }}"
+        state: running
+        uri: "{{ libvirt_uri }}"
+      loop: "{{ vms }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    # No module for domifaddr, so virsh it is (read-only, hence changed_when: false)
     - name: Wait for an IPv4 address
       ansible.builtin.shell: |
+        set -o pipefail
         for src in lease agent arp; do
-          ip=$(virsh -c {{ libvirt_uri }} domifaddr {{ item.name }} --source $src 2>/dev/null \
+          ip=$(virsh -c {{ libvirt_uri }} domifaddr {{ item.name }} --source "$src" 2>/dev/null \
                | awk '/ipv4/ {split($4,a,"/"); print a[1]; exit}')
-          [ -n "$ip" ] && echo "$ip" && exit 0
+          if [ -n "$ip" ]; then echo "$ip"; exit 0; fi
         done
         exit 1
       register: vm_ip
@@ -145,7 +164,9 @@
       retries: 30
       delay: 5
       changed_when: false
-      loop: "{{ molecule_yml.platforms }}"
+      loop: "{{ vms }}"
+      loop_control:
+        label: "{{ item.name }}"
 
     - name: Wait for SSH
       ansible.builtin.wait_for:
@@ -156,23 +177,20 @@
       loop_control:
         label: "{{ item.item.name }}"
 
-    - name: Populate instance config
-      ansible.builtin.set_fact:
-        instance_conf: >-
-          {{ instance_conf | default([]) + [{
-            'instance': item.item.name,
-            'address': item.stdout,
-            'user': ssh_user,
-            'port': 22,
-            'identity_file': ssh_identity,
-            'become_method': 'sudo'
-          }] }}
-      loop: "{{ vm_ip.results }}"
-      loop_control:
-        label: "{{ item.item.name }}"
+    - name: Ensure generated inventory directory exists
+      ansible.builtin.file:
+        path: "{{ ip_inventory_file | dirname }}"
+        state: directory
+        mode: "0755"
 
-    - name: Store instance config
+    - name: Write ansible_host for every VM
       ansible.builtin.copy:
-        content: "{{ instance_conf | to_json | from_json | to_yaml }}"
-        dest: "{{ molecule_instance_config }}"
-        mode: "0600"
+        dest: "{{ ip_inventory_file }}"
+        mode: "0644"
+        content: |
+          all:
+            hosts:
+          {% for r in vm_ip.results %}
+              {{ r.item.name }}:
+                ansible_host: {{ r.stdout }}
+          {% endfor %}

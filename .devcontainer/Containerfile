@@ -18,14 +18,17 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         git git-lfs \
         openssh-client \
         shellcheck shfmt \
+        # podman in podman
+        podman crun uidmap \
+        catatonit \
+        passt netavark aardvark-dns \
         # python
         python3-pip \
         python3-venv \
         python3-full \
-        # podman in podman
-        podman crun uidmap \
-        catatonit \
-        passt netavark aardvark-dns
+        # libvirt
+        # for pip to be able to build libvirt-python
+        gcc pkg-config python3-dev libvirt-dev
 
 RUN locale-gen en_US.UTF-8
 
@@ -57,7 +60,7 @@ USER developer
 WORKDIR /home/developer
 
 RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir ansible-dev-tools molecule-plugins argcomplete
+RUN pip install --no-cache-dir ansible-dev-tools molecule-plugins argcomplete libvirt-python lxml
 
 # autocomplete for ansible/molecule
 RUN <<EOF
