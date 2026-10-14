@@ -6,6 +6,9 @@
 
   strategy: etckeeper_linear
 
+  # not strictly needed as long as the default user of the container is root
+  become: true
+
   gather_facts: true  # requires python in the container
 
   tasks:

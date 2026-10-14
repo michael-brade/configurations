@@ -26,11 +26,6 @@
 #     backrefs: true
 #   register: base_config_dpkg_excludes_changed
 
-- name: Update and upgrade packages
-  ansible.builtin.apt:
-    update_cache: true
-    upgrade: "full"
-
 - name: Mark automatically installed packages as such
   block:
     - name: Find manual packages that are required by others

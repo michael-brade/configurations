@@ -197,7 +197,7 @@
       loop_control:
         label: "{{ item.item.name }}"
 
-    - name: Write ansible_host for every VM
+    - name: Write every VM's IPv4 to inventory
       ansible.builtin.copy:
         dest: "{{ ip_inventory_file }}"
         mode: "0644"

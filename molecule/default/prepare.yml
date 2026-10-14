@@ -1,0 +1,17 @@
+---
+- name: Converge
+  hosts: all
+
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Update package cache and install python
+      ansible.builtin.raw: |-
+        bash -c "apt-get -o Acquire::ForceIPv4=true update && \
+                 apt-get -o Acquire::ForceIPv4=true install -y python3"
+      changed_when: true
+
+    - name: Upgrade system
+      ansible.builtin.apt:
+        upgrade: "full"

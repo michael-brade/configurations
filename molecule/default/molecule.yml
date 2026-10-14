@@ -5,15 +5,15 @@ ansible:
     backend: ansible-playbook
     args:
       ansible_playbook:
-        - --diff
-        # - --force-handlers
         - --inventory=${MOLECULE_SCENARIO_DIRECTORY}/inventory/
+        # - --diff
+        # - --force-handlers
         # - --extra-vars=environment=test
 
       ansible_navigator:
+        - --inventory=${MOLECULE_SCENARIO_DIRECTORY}/inventory/
       #   - --mode stdout
       #   - --pull-policy missing
-        - --inventory=${MOLECULE_SCENARIO_DIRECTORY}/inventory/
       #   - --execution-environment-image ghcr.io/ansible/community-ansible-dev-tools:latest
   env:
     ANSIBLE_FORCE_COLOR: "true"

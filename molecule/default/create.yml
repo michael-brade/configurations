@@ -3,6 +3,7 @@
 - name: Create Podman test containers
   hosts: localhost
   connection: local
+
   gather_facts: false
 
   # no_log: "{{ molecule_no_log }}"
@@ -20,10 +21,4 @@
         # tty: true
         command: sleep infinity
       # Loop through all inventory hosts (excluding localhost itself)
-      loop: "{{ groups['test_resources'] }}"
-
-    - name: Install python for gather_facts
-      containers.podman.podman_container_exec:
-        name: "{{ item }}"
-        command: "bash -c 'apt-get -o Acquire::ForceIPv4=true update && apt-get -o Acquire::ForceIPv4=true install -y python3'"
       loop: "{{ groups['test_resources'] }}"
