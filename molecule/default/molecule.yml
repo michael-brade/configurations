@@ -37,12 +37,15 @@ dependency:
 scenario:
   converge_sequence:
     - create
+    - prepare
     - converge
-    - destroy
+    # - destroy
 
   test_sequence:
-    # - destroy
+    - destroy
+    - syntax
     - create
+    - prepare
     - converge
     # - verify
     - destroy
