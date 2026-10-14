@@ -67,26 +67,17 @@
 
 - name: Set locale
   block:
-    - name: Locales to be generated
-      ansible.builtin.debconf:
-        name: locales
-        question: locales/locales_to_be_generated
-        value: "{{ base_config_locales | join(', ') }}"
-        vtype: multiselect
-      register: base_config_locales_generated
+    - name: Generate locales
+      community.general.locale_gen:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ base_config_locales }}"
 
-    - name: Set default locale
-      ansible.builtin.debconf:
-        name: locales
-        question: locales/default_environment_locale
-        value: en_US.UTF-8
-        vtype: select
-      register: base_config_lang_selected
-
-    - name: Update locale system config
-      ansible.builtin.command: dpkg-reconfigure --frontend=noninteractive locales
-      when: base_config_locales_generated.changed or base_config_lang_selected.changed
-      changed_when: true
+    - name: Set system default locale
+      ansible.builtin.copy:
+        dest: /etc/locale.conf
+        content: "LANG=en_US.UTF-8\n"
+        mode: "0644"
 
 - name: Bash configuration
   block:

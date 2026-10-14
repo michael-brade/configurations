@@ -27,8 +27,6 @@
 
 base_config_packages:
   - aptitude
-  - debconf
-  - debconf-utils
   - locales
 
   - bash-completion
