@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: MIT-0
+---
+
+- name: Install podman packages
+  ansible.builtin.apt:
+    name: "{{ podman_packages }}"
+    state: present
+
+- name: Purge unwanted packages
+  ansible.builtin.apt:
+    name: "{{ podman_purge }}"
+    state: absent
+    purge: true

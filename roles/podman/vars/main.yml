@@ -1,0 +1,24 @@
+---
+
+podman_packages:
+  - runc
+  - podman
+  - podman-compose
+  - podman-remote
+  - buildah
+  - skopeo
+  - catatonit
+  - criu
+
+  - aardvark-dns
+  - passt
+  - slirp4netns
+  - containernetworking-plugins
+
+  # - tdocker
+  # - dive
+  # - docker-ctop
+
+podman_purge:
+  - runc
+  - fuse-overlayfs
