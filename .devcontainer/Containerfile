@@ -53,20 +53,6 @@ RUN echo "developer:$SUBID_START:$SUBID_COUNT" > /etc/subuid && \
     echo "developer:$SUBID_START:$SUBID_COUNT" > /etc/subgid
 
 
-# create a host-matching libvirt group and add it to developer user
-COPY libvirt.gid /tmp/libvirt.gid
-RUN <<EOF
-    gid="$(cat /tmp/libvirt.gid)"
-
-    if [ "$gid" != "0" ]
-    then
-        getent group "$gid" >/dev/null || groupadd -g "$gid" libvirt
-        usermod -aG "$(getent group "$gid" | cut -d: -f1)" developer
-    fi
-    rm /tmp/libvirt.gid
-EOF
-
-
 ### install ansible
 
 # bind Python environment to the user space

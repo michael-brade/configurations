@@ -11,8 +11,10 @@ Using the DevContainer, this means that the containers run inside the DevContain
 
 ## Scenario: libvirt
 
-This creates full virtual machines with the host's libvirt socket. Base images are the Debian cloud-init images,
-the connection can only be done using `ssh`.
+This creates full virtual machines with the host user's libvirt socket (libvirt session connection). Base images
+are the Debian cloud-init images, the connection can only be done using `ssh`. The network bridge on the host
+needs to be called `vlanbr`, `chmod u+s /usr/lib/qemu/qemu-bridge-helper` needs to be executed,
+and `/etc/qemu/bridge.conf` must contain `allow vlanbr`.
 
 Using the DevContainer, the VMs run under libvirtd on the host, KVM on the host is used and not needed in the
 container. However, the libvirt group needs to be created inside the container with the same GID as on the host,

@@ -17,8 +17,7 @@
 
     // runs before the build, so Containerfile can use the result
     "initializeCommand": {
-        // "create-image-dir": "mkdir -p /var/lib/libvirt/images/molecule && chgrp libvirt /var/lib/libvirt/images/molecule",
-        "record-gid": "stat -c %g /run/libvirt/libvirt-sock > .devcontainer/libvirt.gid || echo 0 > .devcontainer/libvirt.gid"
+        "ensure-bind-mount-exists": "mkdir -p ${localEnv:HOME}/.local/share/libvirt/images"
     },
 
     "features": {
@@ -36,7 +35,6 @@
         "--security-opt=seccomp=unconfined",
         "--security-opt=apparmor=unconfined",
         "--security-opt=systempaths=unconfined",
-        "--security-opt=unmask=/sys/fs/cgroup",
 
         "--cap-add=SYS_ADMIN",
         "--cap-add=SYS_RESOURCE",
@@ -47,7 +45,7 @@
     ],
 
     // "containerUser": "root",
-    "remoteUser": "developer",
+    "remoteUser": "developer",  // needs to have the same UID as the host user
 
     "postCreateCommand": "ansible-galaxy collection install -r requirements.yml",
 
@@ -72,6 +70,11 @@
         }
     },
 
+    "containerEnv": {
+        "HOST_HOME": "${localEnv:HOME}",
+        "LIBVIRT_DEFAULT_URI": "qemu+unix:///session?socket=/run/libvirt-session/libvirt-sock"
+    },
+
     "mounts": [
         {
             "source": "/etc/localtime",
@@ -88,14 +91,14 @@
 
         // store libvirt images on the host as well
         {
-            "source": "/var/lib/libvirt/images/molecule",
-            "target": "/var/lib/libvirt/images/molecule",
+            "source": "${localEnv:HOME}/.local/share/libvirt/images",
+            "target": "${localEnv:HOME}/.local/share/libvirt/images",
             "type": "bind"
         },
 
         {
-            "source": "/run/libvirt/libvirt-sock",
-            "target": "/run/libvirt/libvirt-sock",
+            "source": "${localEnv:XDG_RUNTIME_DIR}/libvirt/",
+            "target": "/run/libvirt-session/",
             "type": "bind"
         },
 
