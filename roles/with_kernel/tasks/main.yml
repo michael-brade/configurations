@@ -54,7 +54,7 @@
 
     - name: Ensure the global themes directory exists
       ansible.builtin.file:
-        path: /usr/local/share/oh-my-posh/themes
+        path: "{{ with_kernel_ohmyposh_themes_dir }}"
         state: directory
         mode: '0755'
         owner: root
@@ -63,7 +63,7 @@
     - name: Download and extract the official Oh My Posh themes
       ansible.builtin.unarchive:
         src: https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/themes.zip
-        dest: /usr/local/share/oh-my-posh/themes
+        dest: "{{ with_kernel_ohmyposh_themes_dir }}"
         remote_src: true
         mode: '0644'
         owner: root
