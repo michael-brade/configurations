@@ -9,7 +9,9 @@
             "--progress=plain"
         ],
         "args": {
-            // "baseImageVersion": "lts"
+            // on the host, at least 130000 subuids/subgids should be made available
+            "SUBID_START": "1001",
+            "SUBID_COUNT": "65535"
         }
     },
 
@@ -28,7 +30,6 @@
         "--name", "Ansible-${devcontainerId}",
         "--hostname=ansible-dev-container",
 
-        "--userns=host",
         "--network=host",
 
         "--security-opt=label=disable",
