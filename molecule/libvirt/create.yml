@@ -1,7 +1,4 @@
 ---
-# molecule/libvirt/create.yml
-# VMs come from the group "test_resources" in inventory/hosts.yml.
-
 - name: Create libvirt test VMs
   hosts: localhost
   connection: local
@@ -11,23 +8,11 @@
   no_log: "{{ molecule_no_log }}"
 
   vars:
-    # export LIBVIRT_DEFAULT_URI="qemu:///..." in the devcontainer could overwrite this default
-    libvirt_uri: "{{ lookup('ansible.builtin.env', 'LIBVIRT_DEFAULT_URI') | default('qemu:///session', true) }}"
-    images_dir: "{{ lookup('ansible.builtin.env', 'HOST_HOME') }}/.local/share/libvirt/images"
-
-    # use cloud-init (genericcloud)
-    base_image_url: https://cloud.debian.org/images/cloud/sid/daily/20261012-2629/debian-sid-genericcloud-amd64-daily-20261012-2629.qcow2
-    base_image: "{{ images_dir }}/debian-sid-cloud-init.qcow2"
-
-    ip_inventory_file: "{{ hostvars[groups['test_resources'][0]].inventory_dir }}/libvirt_hosts.yml"
-
-    # Optional console password; empty = password login disabled (key only)
-    vm_password: "{{ lookup('ansible.builtin.env', 'MOLECULE_VM_PASSWORD') | default('', true) }}"
-
     # Only the VMs whose disk was freshly created in this run (lazy, after `disks` is registered)
     new_vms: "{{ disks.results | selectattr('changed') | map(attribute='item') | list }}"
 
   tasks:
+    # VMs come from the group "test_resources" in inventory/hosts.yml
     - name: Collect VM definitions from the inventory
       ansible.builtin.set_fact:
         vms: >-
@@ -42,11 +27,12 @@
           }] }}
       loop: "{{ groups['test_resources'] }}"
 
-    - name: Download VM base image (once)
+    - name: Download VM base images (once)
       ansible.builtin.get_url:
-        url: "{{ base_image_url }}"
-        dest: "{{ base_image }}"
+        url: "{{ hostvars[item].base_image_url }}"
+        dest: "{{ hostvars[item].base_image }}"
         mode: "0644"
+      loop: "{{ groups['test_resources'] }}"
 
     - name: List existing domains
       community.libvirt.virt:
@@ -56,9 +42,10 @@
 
     # force: false -> only copies when the target does not exist yet.
     # Resize only runs for freshly copied disks.
+    # TODO: really copy for each VM???
     - name: Create disk images from the base image
       ansible.builtin.copy:
-        src: "{{ base_image }}"
+        src: "{{ hostvars[item.name].base_image }}"
         dest: "{{ images_dir }}/{{ item.name }}.qcow2"
         remote_src: true
         force: false
@@ -103,15 +90,15 @@
                 - name: {{ item.user }}
                   shell: /bin/bash
                   sudo: ALL=(ALL) NOPASSWD:ALL
-                  lock_passwd: {{ 'false' if vm_password else 'true' }}
+                  lock_passwd: {{ 'false' if hostvars[item.name].vm_password else 'true' }}
                   ssh_authorized_keys:
                     - {{ lookup('ansible.builtin.file', item.pubkey) | trim }}
               ssh_pwauth: false
-              {% if vm_password %}
+              {% if hostvars[item.name].vm_password %}
               chpasswd:
                 expire: false
                 users:
-                  - {name: "{{ item.user }}", password: "{{ vm_password }}", type: text}
+                  - {name: "{{ item.user }}", password: "{{ hostvars[item.name].vm_password }}", type: text}
               {% endif %}
           loop: "{{ vms }}"
           loop_control:

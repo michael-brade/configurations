@@ -75,7 +75,7 @@
 
     "containerEnv": {
         "HOST_HOME": "${localEnv:HOME}",
-        "LIBVIRT_DEFAULT_URI": "qemu+unix:///session?socket=/run/libvirt-session/libvirt-sock"
+        "LIBVIRT_URI": "qemu+unix:///session?socket=/run/libvirt-session/libvirt-sock"
     },
 
     "mounts": [

@@ -1,16 +1,10 @@
 ---
-# molecule/libvirt/destroy.yml
 - name: Destroy VMs on libvirt
   hosts: localhost
   connection: local
   gather_facts: false
 
   no_log: "{{ molecule_no_log }}"
-
-  vars:
-    libvirt_uri: "{{ lookup('ansible.builtin.env', 'LIBVIRT_DEFAULT_URI') | default('qemu:///system', true) }}"
-    images_dir: /var/lib/libvirt/images/molecule
-    ip_inventory_file: "{{ hostvars[groups['test_resources'][0]].inventory_dir }}/libvirt_hosts.yml"
 
   tasks:
     - name: List existing domains
@@ -40,10 +34,8 @@
         path: "{{ item }}"
         state: absent
       loop: >-
-        {{ groups['test_resources']
-           | map('regex_replace', '^(.*)$', images_dir ~ '/\1.qcow2') | list
-         + groups['test_resources']
-           | map('regex_replace', '^(.*)$', images_dir ~ '/\1-seed.iso') | list
+        {{ groups['test_resources'] | map('regex_replace', '^(.*)$', images_dir ~ '/\1.qcow2') | list
+         + groups['test_resources'] | map('regex_replace', '^(.*)$', images_dir ~ '/\1-seed.iso') | list
          + [molecule_ephemeral_directory ~ '/cloud-init', ip_inventory_file] }}
 
     # The shared base image (debian-sid-cloud-init.qcow2) is kept on purpose,
