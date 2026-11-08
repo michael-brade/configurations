@@ -1,7 +1,7 @@
 ---
 
 podman_packages:
-  - runc
+  - crun
   - podman
   - podman-compose
   - podman-remote
@@ -11,14 +11,16 @@ podman_packages:
   - criu
 
   - aardvark-dns
-  - passt
-  - slirp4netns
-  - containernetworking-plugins
 
   # - tdocker
   # - dive
   # - docker-ctop
 
+podman_rootless_packages:
+  - passt
+
 podman_purge:
-  - runc
+  - runc                        # use crun instead
   - fuse-overlayfs
+  - slirp4netns                 # replaced by pasta
+  - containernetworking-plugins # CNI, replaced by netavark

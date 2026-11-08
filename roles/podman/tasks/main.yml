@@ -11,3 +11,9 @@
     name: "{{ podman_purge }}"
     state: absent
     purge: true
+
+- name: Install Podman rootless
+  ansible.builtin.apt:
+    name: "{{ podman_rootless_packages }}"
+    state: present
+  when: not podman_rootful_only
