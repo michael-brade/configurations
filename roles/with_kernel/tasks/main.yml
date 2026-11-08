@@ -12,6 +12,8 @@
   ansible.builtin.apt:
     name: "{{ with_kernel_purge }}"
     state: absent
+    autoremove: true
+    autoclean: true
     purge: true
 
 - name: Add Colemak keyboard layout to symbols/de

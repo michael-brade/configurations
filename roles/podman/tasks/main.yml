@@ -10,6 +10,8 @@
   ansible.builtin.apt:
     name: "{{ podman_purge }}"
     state: absent
+    autoremove: true
+    autoclean: true
     purge: true
 
 - name: Install Podman rootless

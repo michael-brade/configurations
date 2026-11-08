@@ -50,6 +50,8 @@
   ansible.builtin.apt:
     name: "{{ base_config_packages }}"
     state: present
+    autoremove: true
+    autoclean: true
 
 - name: Disable etckeeper's auto-commit
   ansible.builtin.lineinfile:
