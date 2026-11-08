@@ -53,15 +53,29 @@
     autoremove: true
     autoclean: true
 
-- name: Disable etckeeper's auto-commit
-  ansible.builtin.lineinfile:
-    path: /etc/etckeeper/etckeeper.conf
-    regexp: '^#?\s*{{ item.key }}='
-    line: '{{ item.key }}={{ item.value }}'
-    state: present
-  loop:
-    - { key: 'AVOID_DAILY_AUTOCOMMITS', value: '1' }
-    - { key: 'AVOID_COMMIT_BEFORE_INSTALL', value: '1' }
+
+- name: Configure etckeeper
+  block:
+    - name: Disable etckeeper's auto-commit
+      ansible.builtin.lineinfile:
+        path: /etc/etckeeper/etckeeper.conf
+        regexp: '^#?\s*{{ item.key }}='
+        line: '{{ item.key }}={{ item.value }}'
+        state: present
+      loop:
+        - { key: 'AVOID_DAILY_AUTOCOMMITS', value: '1' }
+        - { key: 'AVOID_COMMIT_BEFORE_INSTALL', value: '1' }
+
+    - name: Disable etckeeper.timer and etckeeper.service
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+        masked: true
+      loop:
+        - etckeeper.timer
+        - etckeeper.service
+
 
 - name: Set timezone
   community.general.timezone:
