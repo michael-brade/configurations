@@ -14,8 +14,31 @@
     autoclean: true
     purge: true
 
-- name: Install Podman rootless
+- name: "Podman rootless - {{ 'disabled' if podman_rootful_only else 'enabled' }}"
   ansible.builtin.apt:
     name: "{{ podman_rootless_packages }}"
     state: "{{ 'absent' if podman_rootful_only else 'present' }}"
     purge: true
+
+- name: Podman rootless configuration
+  when: not podman_rootful_only
+  block:
+    - name: SubUID range for rootless user
+      ansible.builtin.lineinfile:
+        path: /etc/subuid
+        regexp: "^{{ ansible_user_id }}:"
+        line: "{{ ansible_user_id }}:100000:200000"
+        state: "{{ 'absent' if podman_rootful_only else 'present' }}"
+
+    - name: SubGID range for rootless user
+      ansible.builtin.lineinfile:
+        path: /etc/subgid
+        regexp: "^{{ ansible_user_id }}:"
+        line: "{{ ansible_user_id }}:100000:200000"
+        state: "{{ 'absent' if podman_rootful_only else 'present' }}"
+
+    - name: Systemd-linger for rootless user
+      ansible.builtin.file:
+        path: "/var/lib/systemd/linger/{{ ansible_user_id }}"
+        state: "{{ 'absent' if podman_rootful_only else 'touch' }}"
+        mode: "0644"
