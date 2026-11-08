@@ -29,8 +29,6 @@
         "--name", "Ansible-${devcontainerId}",
         "--hostname=ansible-dev-container",
 
-        "--network=host",
-
         "--security-opt=label=disable",
         "--security-opt=seccomp=unconfined",
         "--security-opt=apparmor=unconfined",
