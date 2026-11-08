@@ -50,26 +50,26 @@
       ansible.builtin.get_url:
         url: "https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-linux-{{ with_kernel_omp_arch }}"
         dest: /usr/local/bin/oh-my-posh
-        mode: '0755'
         owner: root
         group: root
+        mode: '0755'
 
     - name: Ensure the global themes directory exists
       ansible.builtin.file:
         path: "{{ with_kernel_ohmyposh_themes_dir }}"
         state: directory
-        mode: '0755'
         owner: root
         group: root
+        mode: '0755'
 
     - name: Download and extract the official Oh My Posh themes
       ansible.builtin.unarchive:
         src: https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/themes.zip
         dest: "{{ with_kernel_ohmyposh_themes_dir }}"
         remote_src: true
-        mode: '0644'
         owner: root
         group: root
+        mode: '0644'
 
     - name: Inject TTY-safe Oh My Posh initialization into user's bashrc
       ansible.builtin.lineinfile:
@@ -83,7 +83,7 @@
 
 - name: Install system-wide Error Notification Service
   block:
-    - name: Install system-notifier.sh
+    - name: Error Notification Service - install system-notifier.sh
       ansible.builtin.copy:
         src: system-notifier.sh
         dest: /usr/local/bin/system-notifier.sh
@@ -91,7 +91,7 @@
         group: root
         mode: '0755'
 
-    - name: Create systemd unit file
+    - name: Error Notification Service - create systemd unit file
       ansible.builtin.copy:
         src: system-notifier.service
         dest: /etc/systemd/system/system-notifier.service
@@ -100,7 +100,7 @@
         mode: '0644'
       notify: Reload systemd daemon
 
-    - name: Enable and start system-notifier service
+    - name: Error Notification Service - enable and start service
       ansible.builtin.systemd_service:
         name: system-notifier.service
         state: started
