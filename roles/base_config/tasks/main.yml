@@ -50,8 +50,14 @@
   ansible.builtin.apt:
     name: "{{ base_config_packages }}"
     state: present
+
+- name: Purge unwanted packages
+  ansible.builtin.apt:
+    name: "{{ base_config_packages_purge }}"
+    state: absent
     autoremove: true
     autoclean: true
+    purge: true
 
 
 - name: Configure etckeeper

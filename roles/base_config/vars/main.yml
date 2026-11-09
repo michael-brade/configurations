@@ -39,3 +39,8 @@ base_config_packages:
   - etckeeper
   - neovim
   - htop
+
+base_config_packages_purge:
+  - nano
+  - vim
+  - vim-tiny
