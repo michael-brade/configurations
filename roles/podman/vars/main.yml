@@ -19,7 +19,7 @@ podman_packages:
 podman_rootless_packages:
   - passt
 
-podman_purge:
+podman_packages_purge:
   - runc                        # use crun instead
   - fuse-overlayfs
   - slirp4netns                 # replaced by pasta

@@ -10,7 +10,7 @@
 
 - name: Purge legacy packages
   ansible.builtin.apt:
-    name: "{{ with_kernel_purge }}"
+    name: "{{ with_kernel_packages_purge }}"
     state: absent
     autoremove: true
     autoclean: true

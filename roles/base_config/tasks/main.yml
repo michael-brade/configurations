@@ -222,6 +222,9 @@
     value: "{{ item.value }}"
     scope: system
   loop:
+    - { key: 'user.name', value: "{{ base_config_user_name }}" }
+    - { key: 'user.email', value: "{{ base_config_user_email }}" }
+
     - { key: 'core.autocrlf', value: 'input' }
     - { key: 'core.eol', value: 'lf' }
     - { key: 'init.defaultBranch', value: 'master' }
@@ -343,3 +346,35 @@
       ansible.builtin.command: git lfs install --system
       changed_when: true
       when: base_config_git_lfs_status.rc != 0
+
+
+- name: User management
+  block:
+    - name: Ensure that base_config_user is provided
+      ansible.builtin.assert:
+        that:
+          - base_config_user is defined
+          - base_config_user | length > 0
+        fail_msg: "The variable 'base_config_user' is empty! You must specify a username to create."
+        success_msg: "Username validation passed."
+
+    - name: Add non-root user
+      ansible.builtin.user:
+        name: "{{ base_config_user }}"
+        password: "{{ base_config_user_pw }}"
+        state: present
+        shell: /bin/bash
+
+    - name: Disable root login
+      ansible.builtin.user:
+        name: root
+        password: "*"
+        state: present
+        shell: /bin/bash
+
+    # - name: SSH - disable root login
+    #   ansible.builtin.lineinfile:
+    #     path: /etc/ssh/sshd_config
+    #     regexp: '^PermitRootLogin'
+    #     line: 'PermitRootLogin no'
+    #   notify: Restart sshd

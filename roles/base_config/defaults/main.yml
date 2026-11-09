@@ -6,3 +6,8 @@ base_config_system_timezone: "Europe/Berlin"
 base_config_locales:
   - de_DE.UTF-8
   - en_US.UTF-8
+
+base_config_user:
+base_config_user_pw:
+base_config_user_name:
+base_config_user_email:

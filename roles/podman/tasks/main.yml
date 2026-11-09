@@ -8,7 +8,7 @@
 
 - name: Purge unwanted packages
   ansible.builtin.apt:
-    name: "{{ podman_purge }}"
+    name: "{{ podman_packages_purge }}"
     state: absent
     autoremove: true
     autoclean: true
